@@ -9,14 +9,49 @@ int main(void) {
     int resolution_y = 600;
     bool application_running = true;
 
+    // Tracking time between frames
+    // Uint64 goes from 0 to 18,446,744,073,709,551,615
+    Uint64 time_now = SDL_GetPerformanceCounter();
+    Uint64 time_last = 0;
+    double delta_time = 0;
+
     // https://wiki.libsdl.org/SDL2/SDL_Init
-    SDL_Init(SDL_INIT_EVERYTHING);
+    int sdl_init_result = SDL_Init(SDL_INIT_EVERYTHING);
+
+    if (sdl_init_result != 0) {
+        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
+        return 1;
+    }
 
     // https://wiki.libsdl.org/SDL2/SDL_CreateWindow
     SDL_Window *new_sdl_window = SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, resolution_x, resolution_y, SDL_WINDOW_SHOWN);
 
+    if (new_sdl_window == NULL) {
+        fprintf(stderr, "Error creating SDL window: %s\n", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_Renderer *new_sdl_renderer = SDL_CreateRenderer(new_sdl_window, -1, 0);
+
+    if (new_sdl_renderer == NULL) {
+        fprintf(stderr, "Error creating SDL renderer: %s\n", SDL_GetError());
+        SDL_DestroyWindow(new_sdl_window);
+        SDL_Quit();
+        return 1;
+    }
+
     while (application_running) {
         // I think everything is going to happen in here
+
+        // Update delta time
+        time_last = time_now;
+        time_now = SDL_GetPerformanceCounter();
+        // time_now minus time_last — how many ticks elapsed this frame
+        // SDL_GetPerformanceFrequency() — how many ticks happen per second on this machine
+        // Dividing ticks by ticks-per-second gives you seconds
+        // Multiplying by 1000 converts seconds to milliseconds
+        delta_time = ((time_now - time_last)*1000 / (double)SDL_GetPerformanceFrequency() );
 
         // https://wiki.libsdl.org/SDL2/SDL_Event
         SDL_Event sdl_event;
@@ -56,7 +91,8 @@ int main(void) {
         }
     }
 
-    SDL_DestroyWindow(new_sdl_window); // Probably could just call quit but maybe it's better to be diligent about freeing up the stuff you made to avoid memory leaks and whatever
+    SDL_DestroyRenderer(new_sdl_renderer);
+    SDL_DestroyWindow(new_sdl_window);
     SDL_Quit();
     return 0;
 }
