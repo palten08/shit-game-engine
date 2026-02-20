@@ -3,17 +3,43 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+int resolution_x = 800;
+int resolution_y = 600;
+
+int put_square(uint32_t *frame_buffer, int coordinate_x, int coordinate_y, int size, uint32_t color, SDL_Texture *texture, SDL_Renderer *renderer) {
+    int texture_lock_result = SDL_LockTexture(texture, NULL, (void**)&frame_buffer, &(int){0});
+    if (texture_lock_result != 0) {
+        fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
+        return 1;
+    }
+    for (int y = 0; y < size; y++) {
+        for (int x = 0; x < size; x++) {
+            frame_buffer[(coordinate_y + y) * resolution_x + (coordinate_x + x)] = color;
+        }
+    }
+    SDL_UnlockTexture(texture);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    return 0;
+}
+
 int main(void) {
     const char *window_title = "Shit Game Engine";
-    int resolution_x = 800;
-    int resolution_y = 600;
     bool application_running = true;
 
     // Tracking time between frames
     // Uint64 goes from 0 to 18,446,744,073,709,551,615
-    Uint64 time_now = SDL_GetPerformanceCounter();
-    Uint64 time_last = 0;
+    Uint64 ticks_now = SDL_GetPerformanceCounter();
+    Uint64 ticks_last = 0;
     double delta_time = 0;
+
+    // Frame buffer?
+    uint32_t *frame_buffer = (uint32_t *)malloc(resolution_x * resolution_y * sizeof(uint32_t));
+    if (frame_buffer == NULL) {
+        fprintf(stderr, "Error allocating frame buffer\n");
+        SDL_Quit();
+        return 1;
+    }
 
     // https://wiki.libsdl.org/SDL2/SDL_Init
     int sdl_init_result = SDL_Init(SDL_INIT_EVERYTHING);
@@ -41,17 +67,64 @@ int main(void) {
         return 1;
     }
 
+    SDL_Texture *new_sdl_texture = SDL_CreateTexture(new_sdl_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, resolution_x, resolution_y);
+
+    if (new_sdl_texture == NULL) {
+        fprintf(stderr, "Error creating SDL texture: %s\n", SDL_GetError());
+        SDL_DestroyRenderer(new_sdl_renderer);
+        SDL_DestroyWindow(new_sdl_window);
+        SDL_Quit();
+        return 1;
+    }
+
+    // Attempt to make the entire window white
+
+    // Lock the texture first
+    int texture_lock_result = SDL_LockTexture(new_sdl_texture, NULL, (void**)&frame_buffer, &(int){0});
+    if (texture_lock_result != 0) {
+        fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
+        SDL_DestroyTexture(new_sdl_texture);
+        SDL_DestroyRenderer(new_sdl_renderer);
+        SDL_DestroyWindow(new_sdl_window);
+        SDL_Quit();
+        return 1;
+    }
+
+    // Push initial pixels into frame buffer?
+    for (int y = 0; y < resolution_y; y++) {
+        for (int x = 0; x < resolution_x; x++) {
+            frame_buffer[y * resolution_x + x] = 0xFFFFFFFF; // ARGB format, opaque white
+        }
+    }
+
+    // Unlock the texture after modifying the frame buffer
+    SDL_UnlockTexture(new_sdl_texture); // Apparently this can't fail so it doesn't return an int
+
+    // Copy the texture to the renderer
+    int texture_copy_result = SDL_RenderCopy(new_sdl_renderer, new_sdl_texture, NULL, NULL);
+
+    // Render?
+    SDL_RenderPresent(new_sdl_renderer);
+
     while (application_running) {
         // I think everything is going to happen in here
 
         // Update delta time
-        time_last = time_now;
-        time_now = SDL_GetPerformanceCounter();
-        // time_now minus time_last — how many ticks elapsed this frame
+        ticks_last = ticks_now;
+        ticks_now = SDL_GetPerformanceCounter();
+        // ticks_now minus ticks_last — how many ticks elapsed this frame
         // SDL_GetPerformanceFrequency() — how many ticks happen per second on this machine
         // Dividing ticks by ticks-per-second gives you seconds
         // Multiplying by 1000 converts seconds to milliseconds
-        delta_time = ((time_now - time_last)*1000 / (double)SDL_GetPerformanceFrequency() );
+        delta_time = ((ticks_now - ticks_last)*1000 / (double)SDL_GetPerformanceFrequency() );
+
+        // Continously put a pixel in the middle of the screen with a different color each frame
+        int middle_x = resolution_x / 2;
+        int middle_y = resolution_y / 2;
+        uint32_t color = (uint32_t)(ticks_now / 1000) | 0xFF000000; // Change the color over time, keeping alpha at 255
+        //put_square(frame_buffer, middle_x, middle_y, 1, color, new_sdl_texture, new_sdl_renderer);
+        put_square(frame_buffer, middle_x - 10, middle_y - 10, 20, color, new_sdl_texture, new_sdl_renderer);
+        //put_pixel(frame_buffer, middle_x, middle_y, color, new_sdl_texture, new_sdl_renderer);
 
         // https://wiki.libsdl.org/SDL2/SDL_Event
         SDL_Event sdl_event;
@@ -91,6 +164,7 @@ int main(void) {
         }
     }
 
+    SDL_DestroyTexture(new_sdl_texture);
     SDL_DestroyRenderer(new_sdl_renderer);
     SDL_DestroyWindow(new_sdl_window);
     SDL_Quit();
