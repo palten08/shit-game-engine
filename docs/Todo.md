@@ -1,3 +1,6 @@
+Claude gave me this so I can have some kind of general guide to follow for trying this whole thing
+I don't want it vibe coding for me but I do at least need something to get over that "blank page syndrome"
+
  ---
   1. Dev Environment + Build Setup
 

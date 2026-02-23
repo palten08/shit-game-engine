@@ -1,10 +1,10 @@
+#include "../include/types.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-int resolution_x = 800;
-int resolution_y = 600;
+Vector2i window_resolution = {800, 600};
 
 int put_square(uint32_t *frame_buffer, int coordinate_x, int coordinate_y, int size, uint32_t color, SDL_Texture *texture, SDL_Renderer *renderer) {
     int texture_lock_result = SDL_LockTexture(texture, NULL, (void**)&frame_buffer, &(int){0});
@@ -14,7 +14,24 @@ int put_square(uint32_t *frame_buffer, int coordinate_x, int coordinate_y, int s
     }
     for (int y = 0; y < size; y++) {
         for (int x = 0; x < size; x++) {
-            frame_buffer[(coordinate_y + y) * resolution_x + (coordinate_x + x)] = color;
+            frame_buffer[(coordinate_y + y) * window_resolution.x + (coordinate_x + x)] = color;
+        }
+    }
+    SDL_UnlockTexture(texture);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    return 0;
+}
+
+int clear_buffer(uint32_t *frame_buffer, uint32_t color, SDL_Texture *texture, SDL_Renderer *renderer) {
+    int texture_lock_result = SDL_LockTexture(texture, NULL, (void**)&frame_buffer, &(int){0});
+    if (texture_lock_result != 0) {
+        fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
+        return 1;
+    }
+    for (int y = 0; y < window_resolution.y; y++) {
+        for (int x = 0; x < window_resolution.x; x++) {
+            frame_buffer[y * window_resolution.x + x] = color;
         }
     }
     SDL_UnlockTexture(texture);
@@ -34,12 +51,8 @@ int main(void) {
     double delta_time = 0;
 
     // Frame buffer?
-    uint32_t *frame_buffer = (uint32_t *)malloc(resolution_x * resolution_y * sizeof(uint32_t));
-    if (frame_buffer == NULL) {
-        fprintf(stderr, "Error allocating frame buffer\n");
-        SDL_Quit();
-        return 1;
-    }
+    //uint32_t *frame_buffer = (uint32_t *)malloc(window_resolution.x * window_resolution.y * sizeof(uint32_t));
+    uint32_t *frame_buffer = NULL;
 
     // https://wiki.libsdl.org/SDL2/SDL_Init
     int sdl_init_result = SDL_Init(SDL_INIT_EVERYTHING);
@@ -50,7 +63,7 @@ int main(void) {
     }
 
     // https://wiki.libsdl.org/SDL2/SDL_CreateWindow
-    SDL_Window *new_sdl_window = SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, resolution_x, resolution_y, SDL_WINDOW_SHOWN);
+    SDL_Window *new_sdl_window = SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_resolution.x, window_resolution.y, SDL_WINDOW_SHOWN);
 
     if (new_sdl_window == NULL) {
         fprintf(stderr, "Error creating SDL window: %s\n", SDL_GetError());
@@ -67,7 +80,7 @@ int main(void) {
         return 1;
     }
 
-    SDL_Texture *new_sdl_texture = SDL_CreateTexture(new_sdl_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, resolution_x, resolution_y);
+    SDL_Texture *new_sdl_texture = SDL_CreateTexture(new_sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, window_resolution.x, window_resolution.y);
 
     if (new_sdl_texture == NULL) {
         fprintf(stderr, "Error creating SDL texture: %s\n", SDL_GetError());
@@ -91,9 +104,9 @@ int main(void) {
     }
 
     // Push initial pixels into frame buffer?
-    for (int y = 0; y < resolution_y; y++) {
-        for (int x = 0; x < resolution_x; x++) {
-            frame_buffer[y * resolution_x + x] = 0xFFFFFFFF; // ARGB format, opaque white
+    for (int y = 0; y < window_resolution.y; y++) {
+        for (int x = 0; x < window_resolution.x; x++) {
+            frame_buffer[y * window_resolution.x + x] = 0xFFFFFFFF; // ARGB format, opaque white
         }
     }
 
@@ -118,12 +131,8 @@ int main(void) {
         // Multiplying by 1000 converts seconds to milliseconds
         delta_time = ((ticks_now - ticks_last)*1000 / (double)SDL_GetPerformanceFrequency() );
 
-        // Continously put a pixel in the middle of the screen with a different color each frame
-        int middle_x = resolution_x / 2;
-        int middle_y = resolution_y / 2;
-        uint32_t color = (uint32_t)(ticks_now / 1000) | 0xFF000000; // Change the color over time, keeping alpha at 255
-        //put_square(frame_buffer, middle_x, middle_y, 1, color, new_sdl_texture, new_sdl_renderer);
-        put_square(frame_buffer, middle_x - 10, middle_y - 10, 20, color, new_sdl_texture, new_sdl_renderer);
+
+        //put_square(frame_buffer, middle_x - 10, middle_y - 10, 20, 0xFFFF0000, new_sdl_texture, new_sdl_renderer);
         //put_pixel(frame_buffer, middle_x, middle_y, color, new_sdl_texture, new_sdl_renderer);
 
         // https://wiki.libsdl.org/SDL2/SDL_Event
@@ -162,6 +171,7 @@ int main(void) {
                     break;
             }
         }
+        clear_buffer(frame_buffer, 0xFF000000, new_sdl_texture, new_sdl_renderer); // Clear the screen to black each frame
     }
 
     SDL_DestroyTexture(new_sdl_texture);

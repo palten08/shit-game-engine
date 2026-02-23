@@ -6,10 +6,10 @@ RM      = rm -f
 
 default: all
 
-all: Shit
+all: sge
 
-Shit: shit.c
-	$(CC) $(CFLAGS) -o shit shit.c $(LDFLAGS)
+sge: src/main.c
+	$(CC) $(CFLAGS) -o bin/sge src/main.c $(LDFLAGS)
 
 clean veryclean:
-	$(RM) shit
+	$(RM) bin/sge
