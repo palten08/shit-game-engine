@@ -8,8 +8,9 @@ default: all
 
 all: sge
 
-sge: src/main.c
-	$(CC) $(CFLAGS) -o bin/sge src/main.c $(LDFLAGS)
+sge: src/main.c src/render.c src/utils.c src/debug.c src/scene.c
+	mkdir -p bin
+	$(CC) $(CFLAGS) -o bin/sge src/main.c src/render.c src/utils.c src/debug.c src/scene.c $(LDFLAGS)
 
 clean veryclean:
 	$(RM) bin/sge
