@@ -1,29 +1,12 @@
 #include "../include/types.h"
 #include "../include/render.h"
 #include "../include/utils.h"
+#include "../include/debug.h"
+#include "../include/scene.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
-/*
-int put_square(uint32_t *frame_buffer, int coordinate_x, int coordinate_y, int size, uint32_t color, SDL_Texture *texture, SDL_Renderer *renderer) {
-    int texture_lock_result = SDL_LockTexture(texture, NULL, (void**)&frame_buffer, &(int){0});
-    if (texture_lock_result != 0) {
-        fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
-        return 1;
-    }
-    for (int y = 0; y < size; y++) {
-        for (int x = 0; x < size; x++) {
-            frame_buffer[(coordinate_y + y) * WINDOW_RESOLUTION.x + (coordinate_x + x)] = color;
-        }
-    }
-    SDL_UnlockTexture(texture);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-    return 0;
-}
-*/
 
 int main(void) {
     const char *WINDOW_TITLE = "Shit Game Engine";
@@ -47,17 +30,26 @@ int main(void) {
     Uint64 ticks_now = SDL_GetPerformanceCounter();
     Uint64 ticks_last = 0;
     double delta_time = 0;
+    double time_accumulator = 0;
 
-    // Make the window black to start
-    clear_frame_buffer(&app_context);
+    ScreenPositions_Unioned screen_positions;
 
+    screen_positions.named.top_left = (Vector2i){0, 0};
+    screen_positions.named.top_middle = (Vector2i){WINDOW_RESOLUTION.x / 2, 0};
+    screen_positions.named.top_right = (Vector2i){WINDOW_RESOLUTION.x, 0};
+    screen_positions.named.middle_left = (Vector2i){0, WINDOW_RESOLUTION.y / 2};
+    screen_positions.named.middle_right = (Vector2i){WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y / 2};
+    screen_positions.named.bottom_left = (Vector2i){0, WINDOW_RESOLUTION.y};
+    screen_positions.named.bottom_middle = (Vector2i){WINDOW_RESOLUTION.x / 2, WINDOW_RESOLUTION.y};
+    screen_positions.named.bottom_right = (Vector2i){WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y};
+    screen_positions.named.absolute_middle = (Vector2i){WINDOW_RESOLUTION.x / 2, WINDOW_RESOLUTION.y / 2};
+
+    Scene test_scene = create_test_scene(&screen_positions);
+    
     while (app_context.application_running) {
         delta_time = get_delta_time(&ticks_now, &ticks_last);
 
-        printf("Delta time is %f ms\n", delta_time);
-
-        //put_square(frame_buffer, middle_x - 10, middle_y - 10, 20, 0xFFFF0000, new_sdl_texture, new_sdl_renderer);
-        //put_pixel(frame_buffer, middle_x, middle_y, color, new_sdl_texture, new_sdl_renderer);
+        double frame_rate = get_instantaneous_frame_rate(&ticks_now, &ticks_last);
 
         // https://wiki.libsdl.org/SDL2/SDL_Event
         SDL_Event sdl_event;
@@ -89,13 +81,39 @@ int main(void) {
                         case SDL_WINDOWEVENT_CLOSE:
                             printf("Window closed\n");
                             SDL_Window *window_to_close = SDL_GetWindowFromID(sdl_event.window.windowID);
-                            SDL_DestroyWindow(window_to_close);
+                            if (window_to_close != NULL) {
+                                if (window_to_close == app_context.window) {
+                                    app_context.application_running = false;
+                                    break;
+                                }
+                                SDL_DestroyWindow(window_to_close);
+                            }
                             break;
                     }
                     break;
             }
         }
-        clear_frame_buffer(&app_context); // Clear the screen to black each frame
+        uint32_t square_color;
+
+        time_accumulator += delta_time;
+        if (time_accumulator > 16.67) {
+            square_color = SDL_GetPerformanceCounter() | 0xFF000000; // Get a color that changes every frame, but is always fully opaque
+            time_accumulator = 0;
+        }
+
+        int texture_lock_result = SDL_LockTexture(app_context.texture, NULL, (void**)&app_context.frame_buffer, &(int){0});
+        if (texture_lock_result != 0) {
+            fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
+            return 1;
+        }
+
+        clear_frame_buffer(&app_context); // Clear first
+
+        render_scene(&app_context, &test_scene);
+
+        SDL_UnlockTexture(app_context.texture);
+        SDL_RenderCopy(app_context.renderer, app_context.texture, NULL, NULL);
+        SDL_RenderPresent(app_context.renderer); // Changes to the buffer are finished, now we can present them to the screen
     }
 
     cleanup_sdl_components(&app_context);
