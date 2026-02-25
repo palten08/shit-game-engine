@@ -1,5 +1,6 @@
 #include "../include/vector.h"
 #include "../include/types.h"
+#include <math.h>
 
 /** Adds two 3D vectors component-wise. */
 /** Arguments:
