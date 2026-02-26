@@ -17,6 +17,30 @@ typedef struct {
     int y; // 4-bytes
 } Vector2i;
 
+/** A 3D floating-point vector structure used for mathematical operations, containing three 4-byte float members: x, y, and z. */
+/** Members: */
+/** - (float) x: The x-coordinate of the vector. (Horizontal component) */
+/** - (float) y: The y-coordinate of the vector. (Vertical component) */
+/** - (float) z: The z-coordinate of the vector. (Depth component) */
+typedef struct {
+    float x; // 4-bytes
+    float y; // 4-bytes
+    float z; // 4-bytes
+} Vector3f;
+
+/** A 4D floating-point vector structure used for mathematical operations, containing four 4-byte float members: x, y, z, and w. */
+/** Members: */
+/** - (float) x: The x-coordinate of the vector. (Horizontal component) */
+/** - (float) y: The y-coordinate of the vector. (Vertical component) */
+/** - (float) z: The z-coordinate of the vector. (Depth component) */
+/** - (float) w: The w-coordinate of the vector. (Homogeneous component) */
+typedef struct {
+    float x; // 4-bytes
+    float y; // 4-bytes
+    float z; // 4-bytes
+    float w; // 4-bytes
+} Vector4f;
+
 /** A structure representing the positions of key points on the screen, including corners, edges, and the center. All represented by 2D vectors containing their screen coordinates. */
 /** Members: */
 /** - (Vector2i) top_left: The top-left corner of the screen. */
@@ -159,3 +183,10 @@ typedef enum PixelAlignment {
     /** Absolute center alignment. */
     ABSOLUTE_MIDDLE
 } PixelAlignment;
+
+/** A 4x4 matrix structure used for transformations in 3D space. */
+/** Members: */
+/** - (float[4][4]) m: The elements of the matrix, stored in row-major order. */
+typedef struct {
+    float m[4][4]; // 16 floats, 64 bytes
+} Matrix4;
