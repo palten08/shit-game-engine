@@ -8,9 +8,9 @@ default: all
 
 all: sge
 
-sge: src/main.c src/render.c src/utils.c src/debug.c src/scene.c src/vector.c src/matrix.c
+sge: src/main.c src/render.c src/utils.c src/debug.c src/scene.c src/vector.c src/matrix.c src/coordinates.c
 	mkdir -p bin
-	$(CC) $(CFLAGS) -o bin/sge src/main.c src/render.c src/utils.c src/debug.c src/scene.c src/vector.c src/matrix.c $(LDFLAGS)
+	$(CC) $(CFLAGS) -o bin/sge src/main.c src/render.c src/utils.c src/debug.c src/scene.c src/vector.c src/matrix.c src/coordinates.c $(LDFLAGS)
 
 clean veryclean:
 	$(RM) bin/sge
