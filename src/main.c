@@ -13,14 +13,6 @@ int main(void) {
     const char *WINDOW_TITLE = "Shit Game Engine";
     const Vector2i WINDOW_RESOLUTION = {800, 600};
 
-    // https://wiki.libsdl.org/SDL2/SDL_Init
-    int sdl_init_result = SDL_Init(SDL_INIT_EVERYTHING);
-
-    if (sdl_init_result != 0) {
-        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
-        return 1;
-    }
-
     AppContext app_context;
 
     if (initialize_sdl_components(&app_context, WINDOW_RESOLUTION, WINDOW_TITLE) != 0) {
