@@ -10,11 +10,23 @@ SquareData2D create_2D_square(Vector2i starting_position, uint32_t color, int si
     new_square.vertices[2] = (VertexData){(Vector2i){starting_position.x + size, starting_position.y + size}, color};
     new_square.vertices[3] = (VertexData){(Vector2i){starting_position.x, starting_position.y + size}, color};
 
+    // Calculate the origin as being dead in the middle of the square, which will make rotation easier later on
+    new_square.origin = (Vector2i){starting_position.x + size / 2, starting_position.y + size / 2};
+
+    // Actually going to replace this with a member of the SquareData2D struct that just specifies edge order
+    // Somewhere else in the code, when we go to render the square, we'll iterate through the vertices in the order specified by this new member and create lines between them on the fly
+    // Hopefully so I don't have to try and keep the vertex and edge positions in sync
+
+    // Or maybe I can just infer edge order
+    // I have to think about whether there is a scenario where inferring edge order from vertex order would be incorrect
+
+    /*
     // Now make the edges to connect the vertices
     new_square.edges[0] = (LineData2D){new_square.vertices[0].position, new_square.vertices[1].position, color}; // Top edge
     new_square.edges[1] = (LineData2D){new_square.vertices[1].position, new_square.vertices[2].position, color}; // Right edge
     new_square.edges[2] = (LineData2D){new_square.vertices[2].position, new_square.vertices[3].position, color}; // Bottom edge
     new_square.edges[3] = (LineData2D){new_square.vertices[3].position, new_square.vertices[0].position, color}; // Left edge
+    */
 
     return new_square;
 }

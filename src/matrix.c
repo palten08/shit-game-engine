@@ -20,7 +20,7 @@ Matrix4 mat4_identity() {
  *  - Returns: The resulting matrix after multiplication.
  */
 Matrix4 mat4_multiply(Matrix4 a, Matrix4 b) {
-    Matrix4 result = mat4_identity();
+    Matrix4 result = {0};
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
@@ -154,7 +154,7 @@ Matrix3 mat3_identity() {
  * @return The resulting 3x3 matrix after multiplication.
  */
 Matrix3 mat3_multiply(Matrix3 a, Matrix3 b) {
-    Matrix3 result = mat3_identity();
+    Matrix3 result = {0};
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             for (int k = 0; k < 3; k++) {

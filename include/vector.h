@@ -2,6 +2,7 @@
 
 #include "types.h"
 
+Vector2i vec2i_subtract(Vector2i a, Vector2i b);
 Vector3f vec3f_add(Vector3f a, Vector3f b);
 Vector3f vec3f_subtract(Vector3f a, Vector3f b);
 Vector3f vec3f_multiply(Vector3f a, Vector3f b);

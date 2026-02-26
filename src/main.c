@@ -102,6 +102,7 @@ int main(void) {
 
         clear_frame_buffer(&app_context); // Clear first
 
+        test_scene = test_update_scene(&test_scene);
         write_scene_to_frame_buffer(&app_context, &test_scene);
 
         SDL_UnlockTexture(app_context.texture);

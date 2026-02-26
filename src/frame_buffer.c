@@ -147,17 +147,13 @@ int draw_line_between_coordinates(AppContext *app_context, int x1, int y1, int x
 int write_scene_to_frame_buffer(AppContext *app_context, Scene *scene) {
     for (int i = 0; i < scene->square_count; i++) {
         SquareData2D square = scene->squares[i];
-        // Draw the vertices first
+        // Draw the vertices and the edges at the same time by just looking ahead to the next vert and using that as the end point
         for (int v = 0; v < 4; v++) {
             VertexData vertex = square.vertices[v];
+            VertexData next_vertex = square.vertices[(v + 1) % 4]; // Get the next vertex in the square (wrap around to the first vertex after the last one)
             draw_pixel_at_coordinates(app_context, vertex.position.x, vertex.position.y, vertex.color);
+            draw_line_between_coordinates(app_context, vertex.position.x, vertex.position.y, next_vertex.position.x, next_vertex.position.y, vertex.color);
         }
-        // Now the edges between the vertices
-        for (int e = 0; e < 4; e++) {
-            LineData2D edge = square.edges[e];
-            draw_line_between_coordinates(app_context, edge.start.x, edge.start.y, edge.end.x, edge.end.y, edge.color);
-        }
-        //put_square_at_coordinates(app_context, square.position.x, square.position.y, square.size, square.color, ABSOLUTE_MIDDLE);
     }
     for (int i = 0; i < scene->line_count; i++) {
         LineData2D line = scene->lines[i];

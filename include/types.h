@@ -134,12 +134,15 @@ typedef struct {
  */
 typedef struct {
     /** An array of vertices representing the corners of the square. */
+    /** This is a 2D square so I'm capping it at 4 */
     VertexData vertices[4]; // 4 vertices, 48 bytes
-    /** An array of lines representing the edges of the square. */
-    LineData2D edges[4]; // 4 edges, 64 bytes
+    /** The original vertex positions of the square, used for resetting transformations. */
+    Vector2i original_vertices[4]; // 4 vertices, 48 bytes
     /** The origin point of the square, used for transformations. */
     Vector2i origin; // 8-bytes
-} SquareData2D;
+    /** The rotation angle of the square, used for transformations. */
+    float current_rotation_angle; // 4-bytes
+} SquareData2D; // 120 bytes
 
 /** A structure representing a scene, including its lines and squares. */
 /** Members: */
@@ -148,10 +151,10 @@ typedef struct {
 /** - (int) square_count: The number of squares in the scene. */
 /** - (int) line_count: The number of lines in the scene. */
 typedef struct {
+    /** The squares in the scene. */
+    SquareData2D squares[256]; // 30,720 bytes (or 30 kB)
     /** The lines in the scene. */
     LineData2D lines[256]; // 5120-bytes
-    /** The squares in the scene. */
-    SquareData2D squares[256]; // 4096-bytes
     /** The number of squares in the scene. */
     int square_count; // 4-bytes
     /** The number of lines in the scene. */
