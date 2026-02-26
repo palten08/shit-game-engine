@@ -1,7 +1,5 @@
 #include "../include/debug.h"
 #include "../include/types.h"
-#include "../include/vector.h"
-#include "../include/matrix.h"
 
 
 int test_update_scene(Scene *scene) {

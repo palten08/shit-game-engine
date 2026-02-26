@@ -126,7 +126,7 @@ typedef struct {
     Vector2i end; // 8-bytes
     /** The color of the line in ARGB format. */
     uint32_t color; // 4-bytes
-} LineData;
+} LineData2D;
 
 /**
  * @brief A structure representing a 2D square, including its vertices, edges and origin point for transformations.
@@ -136,20 +136,20 @@ typedef struct {
     /** An array of vertices representing the corners of the square. */
     VertexData vertices[4]; // 4 vertices, 48 bytes
     /** An array of lines representing the edges of the square. */
-    LineData edges[4]; // 4 edges, 64 bytes
+    LineData2D edges[4]; // 4 edges, 64 bytes
     /** The origin point of the square, used for transformations. */
     Vector2i origin; // 8-bytes
 } SquareData2D;
 
 /** A structure representing a scene, including its lines and squares. */
 /** Members: */
-/** - (LineData[256]) lines: The lines in the scene. */
-/** - (SquareData[256]) squares: The squares in the scene. */
+/** - (LineData2D[256]) lines: The lines in the scene. */
+/** - (SquareData2D[256]) squares: The squares in the scene. */
 /** - (int) square_count: The number of squares in the scene. */
 /** - (int) line_count: The number of lines in the scene. */
 typedef struct {
     /** The lines in the scene. */
-    LineData lines[256]; // 5120-bytes
+    LineData2D lines[256]; // 5120-bytes
     /** The squares in the scene. */
     SquareData2D squares[256]; // 4096-bytes
     /** The number of squares in the scene. */
@@ -157,38 +157,6 @@ typedef struct {
     /** The number of lines in the scene. */
     int line_count; // 4-bytes
 } Scene;
-
-/** An enumeration representing different pixel alignment options for drawing shapes. Can be considering the "origin" or "anchor point" of the shape. Pixels will originate from here and extend outward. */
-/** Members: */
-/** - (TOP_LEFT) Top-left corner alignment. */
-/** - (TOP_RIGHT) Top-right corner alignment. */
-/** - (BOTTOM_LEFT) Bottom-left corner alignment. */
-/** - (BOTTOM_RIGHT) Bottom-right corner alignment. */
-/** - (TOP_MIDDLE) Top-middle alignment. */
-/** - (BOTTOM_MIDDLE) Bottom-middle alignment. */
-/** - (MIDDLE_LEFT) Middle-left alignment. */
-/** - (MIDDLE_RIGHT) Middle-right alignment. */
-/** - (ABSOLUTE_MIDDLE) Absolute center alignment. */
-typedef enum PixelAlignment {
-    /** Top-left corner alignment. */
-    TOP_LEFT,
-    /** Top-right corner alignment. */
-    TOP_RIGHT,
-    /** Bottom-left corner alignment. */
-    BOTTOM_LEFT,
-    /** Bottom-right corner alignment. */
-    BOTTOM_RIGHT,
-    /** Top-middle alignment. */
-    TOP_MIDDLE,
-    /** Bottom-middle alignment. */
-    BOTTOM_MIDDLE,
-    /** Middle-left alignment. */
-    MIDDLE_LEFT,
-    /** Middle-right alignment. */
-    MIDDLE_RIGHT,
-    /** Absolute center alignment. */
-    ABSOLUTE_MIDDLE
-} PixelAlignment;
 
 /** A 4x4 matrix structure used for transformations in 3D space. */
 /** Members: */

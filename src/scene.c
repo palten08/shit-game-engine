@@ -11,7 +11,7 @@ int add_square_to_scene(Scene *scene, SquareData2D square) {
     return scene->square_count - 1; // Return the index of the added square
 }
 
-int add_line_to_scene(Scene *scene, LineData line) {
+int add_line_to_scene(Scene *scene, LineData2D line) {
     if (scene->line_count >= 256) {
         return -1; // Scene is full
     }
@@ -51,10 +51,10 @@ Scene create_test_scene(ScreenPositions_Unioned *screen_positions) {
     add_square_to_scene(&scene, middle_square);
     
     // Add some test lines
-    LineData line1 = {{200, 200}, {300, 300}, 0xFF0000FF}; // Blue line going diagonally down to the right
-    LineData line2 = {{300, 200}, {200, 300}, 0xFFFFFF00}; // Yellow line going diagonally down to the left
-    LineData line3 = {{250, 200}, {250, 300}, 0xFFFF0000}; // Red vertical line
-    LineData line4 = {{200, 250}, {300, 250}, 0xFF00FF00}; // Green horizontal line
+    LineData2D line1 = {{200, 200}, {300, 300}, 0xFF0000FF}; // Blue line going diagonally down to the right
+    LineData2D line2 = {{300, 200}, {200, 300}, 0xFFFFFF00}; // Yellow line going diagonally down to the left
+    LineData2D line3 = {{250, 200}, {250, 300}, 0xFFFF0000}; // Red vertical line
+    LineData2D line4 = {{200, 250}, {300, 250}, 0xFF00FF00}; // Green horizontal line
     add_line_to_scene(&scene, line1);
     add_line_to_scene(&scene, line2);
     add_line_to_scene(&scene, line3);

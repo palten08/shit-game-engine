@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../include/types.h"
-#include "../include/render.h"
-#include <SDL2/SDL.h>
-#include <stdio.h>
+#include "types.h"
 
 Vector3f vec3f_add(Vector3f a, Vector3f b);
 Vector3f vec3f_subtract(Vector3f a, Vector3f b);

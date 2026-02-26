@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/types.h"
+#include "types.h"
 
 Matrix4 mat4_identity();
 Matrix4 mat4_multiply(Matrix4 a, Matrix4 b);

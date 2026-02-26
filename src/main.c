@@ -1,5 +1,6 @@
 #include "../include/types.h"
-#include "../include/render.h"
+#include "../include/frame_buffer.h"
+#include "../include/sdl.h"
 #include "../include/utils.h"
 #include "../include/debug.h"
 #include "../include/scene.h"
@@ -109,7 +110,7 @@ int main(void) {
 
         clear_frame_buffer(&app_context); // Clear first
 
-        render_scene(&app_context, &test_scene);
+        write_scene_to_frame_buffer(&app_context, &test_scene);
 
         SDL_UnlockTexture(app_context.texture);
         SDL_RenderCopy(app_context.renderer, app_context.texture, NULL, NULL);
