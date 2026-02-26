@@ -1,7 +1,8 @@
 #include "../include/scene.h"
 #include "../include/types.h"
+#include "../include/primitives.h"
 
-int add_square_to_scene(Scene *scene, SquareData square) {
+int add_square_to_scene(Scene *scene, SquareData2D square) {
     if (scene->square_count >= 256) {
         return -1; // Scene is full
     }
@@ -29,23 +30,24 @@ Scene create_test_scene(ScreenPositions_Unioned *screen_positions) {
     Scene scene = {0}; // Initialize all fields to zero
 
     // Square in the top left corner
-    SquareData top_left_square = {screen_positions->named.top_left, 0xFFFF0000, 20}; // Red square
+    /** We need a function for generating a primitive SquareData2D based on a supplied starting point, origin and I guess color */
+    SquareData2D top_left_square = create_2D_square(screen_positions->named.top_left, 0xFFFF0000, 20); // Red square
     add_square_to_scene(&scene, top_left_square);
 
     // Square in the top right corner
-    SquareData top_right_square = {screen_positions->named.top_right, 0xFF00FF00, 30}; // Green square
+    SquareData2D top_right_square = create_2D_square(screen_positions->named.top_right, 0xFF00FF00, 30); // Green square
     add_square_to_scene(&scene, top_right_square);
 
     // Square in the bottom left corner
-    SquareData bottom_left_square = {screen_positions->named.bottom_left, 0xFF0000FF, 40}; // Blue square
+    SquareData2D bottom_left_square = create_2D_square(screen_positions->named.bottom_left, 0xFF0000FF, 40); // Blue square
     add_square_to_scene(&scene, bottom_left_square);
 
     // Square in the bottom right corner
-    SquareData bottom_right_square = {screen_positions->named.bottom_right, 0xFFFFFF00, 50}; // Yellow square
+    SquareData2D bottom_right_square = create_2D_square(screen_positions->named.bottom_right, 0xFFFFFF00, 50); // Yellow square
     add_square_to_scene(&scene, bottom_right_square);
 
     // Square in the absolute middle
-    SquareData middle_square = {screen_positions->named.absolute_middle, 0xFFFF00FF, 60}; // Magenta square
+    SquareData2D middle_square = create_2D_square(screen_positions->named.absolute_middle, 0xFFFF00FF, 60); // Magenta square
     add_square_to_scene(&scene, middle_square);
     
     // Add some test lines

@@ -133,7 +133,7 @@ int draw_horizontal_line_between_coordinates(AppContext *app_context, int x1, in
         int y = y1;
         int decision_parameter = 2 * delta_y - delta_x;
         for (int x = x1; x <= x2; x++) {
-            put_square_at_coordinates(app_context, x, y, 1, color, TOP_LEFT);
+            put_square_at_coordinates(app_context, x, y, 1, color, ABSOLUTE_MIDDLE);
             if (decision_parameter >= 0) {
                 y += line_direction_y;
                 decision_parameter = decision_parameter - 2 * delta_x;
@@ -160,7 +160,7 @@ int draw_vertical_line_between_coordinates(AppContext *app_context, int x1, int 
         int x = x1;
         int decision_parameter = 2 * delta_x - delta_y;
         for (int y = y1; y <= y2; y++) {
-            put_square_at_coordinates(app_context, x, y, 1, color, TOP_LEFT);
+            put_square_at_coordinates(app_context, x, y, 1, color, ABSOLUTE_MIDDLE);
             if (decision_parameter >= 0) {
                 x += line_direction_x;
                 decision_parameter = decision_parameter - 2 * delta_y;
@@ -181,12 +181,24 @@ int draw_line_between_coordinates(AppContext *app_context, int x1, int y1, int x
 
 int render_scene(AppContext *app_context, Scene *scene) {
     for (int i = 0; i < scene->square_count; i++) {
-        SquareData square = scene->squares[i];
-        put_square_at_coordinates(app_context, square.position.x, square.position.y, square.size, square.color, ABSOLUTE_MIDDLE);
+        SquareData2D square = scene->squares[i];
+        // Draw the vertices first
+        for (int v = 0; v < 4; v++) {
+            VertexData vertex = square.vertices[v];
+            put_square_at_coordinates(app_context, vertex.position.x, vertex.position.y, 1, vertex.color, ABSOLUTE_MIDDLE);
+        }
+        // Now the edges between the vertices
+        for (int e = 0; e < 4; e++) {
+            LineData edge = square.edges[e];
+            draw_line_between_coordinates(app_context, edge.start.x, edge.start.y, edge.end.x, edge.end.y, edge.color);
+        }
+        //put_square_at_coordinates(app_context, square.position.x, square.position.y, square.size, square.color, ABSOLUTE_MIDDLE);
     }
     for (int i = 0; i < scene->line_count; i++) {
         LineData line = scene->lines[i];
+        // Draw any lines in the scene
         draw_line_between_coordinates(app_context, line.start.x, line.start.y, line.end.x, line.end.y, line.color);
+        //draw_line_between_coordinates(app_context, line.start.x, line.start.y, line.end.x, line.end.y, line.color);
     }
     return 0;
 }
