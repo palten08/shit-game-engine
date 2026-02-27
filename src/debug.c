@@ -4,9 +4,6 @@
 #include "../include/vector.h"
 
 Scene test_update_scene(Scene *scene) {
-    // Matrix used for slightly rotating on every frame
-    //Matrix3 rotation_matrix = mat3_create_rotation_matrix(0.01f);
-
     for (int i = 0; i < scene->square_count; i++) {
         // Create a rotation matrix for the current square's rotation angle
         Matrix3 rotation_matrix = mat3_create_rotation_matrix(scene->squares[i].current_rotation_angle);
@@ -31,8 +28,6 @@ Scene test_update_scene(Scene *scene) {
             scene->squares[i].vertices[j].position.x = (int)resultant_vertex_pos.x;
             scene->squares[i].vertices[j].position.y = (int)resultant_vertex_pos.y;
         }
-
-        // I feel like this all I need but we'll see
     }
 
     return *scene;
