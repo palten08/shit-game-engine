@@ -6,26 +6,24 @@
 
 // Double check alignment!
 
-/** A 2D integer vector structure used for screen coordinates, containing two 4-byte integer members: x and y. */
-/** Members: */
-/** - (int) x: The x-coordinate of the vector. (Horizontal component) */
-/** - (int) y: The y-coordinate of the vector. (Vertical component) */
+
+/** @struct Vector2i
+ * @brief A 2D integer vector structure used for screen coordinates.
+ */ 
 typedef struct {
-    /** The x-coordinate of the vector. (Horizontal component) */
-    int x; // 4-bytes
-    /** The y-coordinate of the vector. (Vertical component) */
-    int y; // 4-bytes
+    /*@{*/
+    int x; /**< The x-coordinate of the vector. (Horizontal component) | 4-bytes */
+    int y; /**< The y-coordinate of the vector. (Vertical component) | 4-bytes */
+    /*@{*/
 } Vector2i;
 
-/** A 3D floating-point vector structure used for mathematical operations, containing three 4-byte float members: x, y, and z. */
-/** Members: */
-/** - (float) x: The x-coordinate of the vector. (Horizontal component) */
-/** - (float) y: The y-coordinate of the vector. (Vertical component) */
-/** - (float) z: The z-coordinate of the vector. (Depth component) */
+/**
+ * @brief A 3D floating-point vector structure used for mathematical operations, containing three 4-byte float members: x, y, and z.
+*/
 typedef struct {
-    float x; // 4-bytes
-    float y; // 4-bytes
-    float z; // 4-bytes
+    float x; /*!< The x-coordinate of the vector. (Horizontal component) | 4-bytes */
+    float y; /*!< The y-coordinate of the vector. (Vertical component) | 4-bytes */
+    float z; /*!< The z-coordinate of the vector. (Depth component) | 4-bytes */
 } Vector3f;
 
 /** A 4D floating-point vector structure used for mathematical operations, containing four 4-byte float members: x, y, z, and w. */
@@ -107,19 +105,14 @@ typedef struct {
     bool application_running; // 1-byte
 } AppContext;
 
-/** A structure representing a square, including its position, color, and size. */
-/** Members: */
-/** - (Vector2i) position: The position of the square on the screen. */
-/** - (uint32_t) color: The color of the square in ARGB format. */
-/** - (int) size: The size of the square. */
+/** 
+ * @brief A structure representing a vertex, including its position and color.
+ * @details This structure is used to define the properties of a vertex in 2D space
+*/
 typedef struct {
-    /** The position of the square on the screen. */
     Vector2i position; // 8-bytes
-    /** The color of the square in ARGB format. */
     uint32_t color; // 4-bytes
-    /** The size of the square. */
-    int size; // 4-bytes
-} SquareData;
+} VertexData;
 
 /** A structure representing a line, including its start and end points and color. */
 /** Members: */
@@ -133,56 +126,40 @@ typedef struct {
     Vector2i end; // 8-bytes
     /** The color of the line in ARGB format. */
     uint32_t color; // 4-bytes
-} LineData;
+} LineData2D;
+
+/**
+ * @brief A structure representing a 2D square, including its vertices, edges and origin point for transformations.
+ * @details This structure defines a square in 2D space, consisting of an array of four vertices (each with a position and color) and an origin point that serves as the pivot for transformations such as rotation and scaling.
+ */
+typedef struct {
+    /** An array of vertices representing the corners of the square. */
+    /** This is a 2D square so I'm capping it at 4 */
+    VertexData vertices[4]; // 4 vertices, 48 bytes
+    /** The original vertex positions of the square, used for resetting transformations. */
+    Vector2i original_vertices[4]; // 4 vertices, 48 bytes
+    /** The origin point of the square, used for transformations. */
+    Vector2i origin; // 8-bytes
+    /** The rotation angle of the square, used for transformations. */
+    float current_rotation_angle; // 4-bytes
+} SquareData2D; // 120 bytes
 
 /** A structure representing a scene, including its lines and squares. */
 /** Members: */
-/** - (LineData[256]) lines: The lines in the scene. */
-/** - (SquareData[256]) squares: The squares in the scene. */
+/** - (LineData2D[256]) lines: The lines in the scene. */
+/** - (SquareData2D[256]) squares: The squares in the scene. */
 /** - (int) square_count: The number of squares in the scene. */
 /** - (int) line_count: The number of lines in the scene. */
 typedef struct {
-    /** The lines in the scene. */
-    LineData lines[256]; // 5120-bytes
     /** The squares in the scene. */
-    SquareData squares[256]; // 4096-bytes
+    SquareData2D squares[256]; // 30,720 bytes (or 30 kB)
+    /** The lines in the scene. */
+    LineData2D lines[256]; // 5120-bytes
     /** The number of squares in the scene. */
     int square_count; // 4-bytes
     /** The number of lines in the scene. */
     int line_count; // 4-bytes
 } Scene;
-
-/** An enumeration representing different pixel alignment options for drawing shapes. Can be considering the "origin" or "anchor point" of the shape. Pixels will originate from here and extend outward. */
-/** Members: */
-/** - (TOP_LEFT) Top-left corner alignment. */
-/** - (TOP_RIGHT) Top-right corner alignment. */
-/** - (BOTTOM_LEFT) Bottom-left corner alignment. */
-/** - (BOTTOM_RIGHT) Bottom-right corner alignment. */
-/** - (TOP_MIDDLE) Top-middle alignment. */
-/** - (BOTTOM_MIDDLE) Bottom-middle alignment. */
-/** - (MIDDLE_LEFT) Middle-left alignment. */
-/** - (MIDDLE_RIGHT) Middle-right alignment. */
-/** - (ABSOLUTE_MIDDLE) Absolute center alignment. */
-typedef enum PixelAlignment {
-    /** Top-left corner alignment. */
-    TOP_LEFT,
-    /** Top-right corner alignment. */
-    TOP_RIGHT,
-    /** Bottom-left corner alignment. */
-    BOTTOM_LEFT,
-    /** Bottom-right corner alignment. */
-    BOTTOM_RIGHT,
-    /** Top-middle alignment. */
-    TOP_MIDDLE,
-    /** Bottom-middle alignment. */
-    BOTTOM_MIDDLE,
-    /** Middle-left alignment. */
-    MIDDLE_LEFT,
-    /** Middle-right alignment. */
-    MIDDLE_RIGHT,
-    /** Absolute center alignment. */
-    ABSOLUTE_MIDDLE
-} PixelAlignment;
 
 /** A 4x4 matrix structure used for transformations in 3D space. */
 /** Members: */
@@ -190,3 +167,17 @@ typedef enum PixelAlignment {
 typedef struct {
     float m[4][4]; // 16 floats, 64 bytes
 } Matrix4;
+
+/** A 2x2 matrix structure used for transformations in 2D space. */
+/** Members: */
+/** - (float[2][2]) m: The elements of the matrix, stored in row-major order. */
+typedef struct {
+    float m[2][2]; // 4 floats, 16 bytes
+} Matrix2;
+
+/** A 3x3 matrix structure used for transformations in 2D space. */
+/** Members: */
+/** - (float[3][3]) m: The elements of the matrix, stored in row-major order. */
+typedef struct {
+    float m[3][3]; // 9 floats, 36 bytes
+} Matrix3;

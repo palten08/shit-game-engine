@@ -2,6 +2,19 @@
 #include "../include/types.h"
 #include <math.h>
 
+/**
+ * @brief Subtracts the second 2D vector from the first, component-wise.
+ * @param a The first vector.
+ * @param b The second vector.
+ * @return The resulting vector after subtraction.
+ */
+Vector2i vec2i_subtract(Vector2i a, Vector2i b) {
+    Vector2i result;
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    return result;
+}
+
 /** Adds two 3D vectors component-wise. */
 /** Arguments:
  *  - (Vector3f) a: The first vector.
