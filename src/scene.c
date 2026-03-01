@@ -33,13 +33,29 @@ int add_line_to_scene(Scene *scene, LineData2D line) {
 }
 
 /**
- * @brief Clears the scene by resetting the square and line counts.
+ * @brief Adds a cube to the scene.
+ * @param scene Pointer to the scene.
+ * @param cube The cube data to add.
+ * @return The index of the added cube, or -1 if the scene is full.
+ */
+int add_cube_to_scene(Scene *scene, CubeData3D cube) {
+    if (scene->cube_count >= 16) {
+        return -1; // Scene is full
+    }
+    scene->cubes[scene->cube_count] = cube;
+    scene->cube_count++;
+    return scene->cube_count - 1; // Return the index of the added cube
+}
+
+/**
+ * @brief Clears the scene by resetting the square, line, and cube counts.
  * @param scene Pointer to the scene.
  * @return 0 on success.
  */
 int clear_scene(Scene *scene) {
     scene->square_count = 0;
     scene->line_count = 0;
+    scene->cube_count = 0;
     return 0; // Success
 }
 
@@ -74,10 +90,12 @@ Scene create_test_scene(ScreenPositions_Unioned *screen_positions) {
     SquareData2D bottom_right_square = create_2D_square((Vector2i){screen_positions->named.bottom_right.x - 50, screen_positions->named.bottom_right.y - 50}, 0xFFFFFF00, 50);
     add_square_to_scene(&scene, bottom_right_square);
 
+
     // Magenta square in the absolute middle
     // Technically has to move up and to the left by half the size of the square to be perfectly centered
-    SquareData2D middle_square = create_2D_square((Vector2i){screen_positions->named.absolute_middle.x - 30, screen_positions->named.absolute_middle.y - 30}, 0xFFFF00FF, 60);
+    SquareData2D middle_square = create_2D_square((Vector2i){screen_positions->named.absolute_middle.x - 90, screen_positions->named.absolute_middle.y - 90}, 0xFFFF00FF, 60);
     add_square_to_scene(&scene, middle_square);
+    
     
     // Add some test lines
     LineData2D line1 = {{200, 200}, {300, 300}, 0xFF0000FF}; // Blue line going diagonally down to the right
@@ -88,6 +106,12 @@ Scene create_test_scene(ScreenPositions_Unioned *screen_positions) {
     add_line_to_scene(&scene, line2);
     add_line_to_scene(&scene, line3);
     add_line_to_scene(&scene, line4);
+
+    
+    // Test 3D cube right in the middle
+    CubeData3D cube = create_3D_cube((Vector3f){screen_positions->named.absolute_middle.x - 20, screen_positions->named.absolute_middle.y - 20, 1}, 0xFF00FFFF, 40);
+    add_cube_to_scene(&scene, cube);
+
     
     return scene;
 }
