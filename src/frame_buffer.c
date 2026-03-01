@@ -149,8 +149,8 @@ int write_scene_to_frame_buffer(AppContext *app_context, Scene *scene) {
         SquareData2D square = scene->squares[i];
         // Draw the vertices and the edges at the same time by just looking ahead to the next vert and using that as the end point
         for (int v = 0; v < 4; v++) {
-            VertexData vertex = square.vertices[v];
-            VertexData next_vertex = square.vertices[(v + 1) % 4]; // Get the next vertex in the square (wrap around to the first vertex after the last one)
+            VertexData2D vertex = square.vertices[v];
+            VertexData2D next_vertex = square.vertices[(v + 1) % 4]; // Get the next vertex in the square (wrap around to the first vertex after the last one)
             draw_pixel_at_coordinates(app_context, vertex.position.x, vertex.position.y, vertex.color);
             draw_line_between_coordinates(app_context, vertex.position.x, vertex.position.y, next_vertex.position.x, next_vertex.position.y, vertex.color);
         }
@@ -160,6 +160,43 @@ int write_scene_to_frame_buffer(AppContext *app_context, Scene *scene) {
         // Draw any lines in the scene
         draw_line_between_coordinates(app_context, line.start.x, line.start.y, line.end.x, line.end.y, line.color);
         //draw_line_between_coordinates(app_context, line.start.x, line.start.y, line.end.x, line.end.y, line.color);
+    }
+    for (int i = 0; i < scene->cube_count; i++) {
+        // Stupid simple orthographic projection for right now
+        CubeData3D cube = scene->cubes[i];
+        // Draw the vertices and the edges at the same time by just looking ahead to the next vert and using that as the end point
+        for (int v = 0; v < 8; v++) {
+            VertexData3D vertex = cube.vertices[v];
+            // Connect the vertices to form the edges of the cube
+            // Front face
+            if (v < 4) {
+                VertexData3D next_vertex = cube.vertices[(v + 1) % 4]; // Get the next vertex in the front face (wrap around to the first vertex after the last one)
+                float projected_x = vertex.position.x;
+                float projected_y = vertex.position.y;
+                float projected_next_x = next_vertex.position.x;
+                float projected_next_y = next_vertex.position.y;
+                //printf("Front face projected X and Y coordinates for vertex %d: (%f, %f)\n", v, projected_x, projected_y);
+                draw_pixel_at_coordinates(app_context, projected_x, projected_y, vertex.color);
+                draw_line_between_coordinates(app_context, projected_x, projected_y, projected_next_x, projected_next_y, vertex.color);
+                
+                // Connect front and back faces
+                VertexData3D corresponding_vertex = cube.vertices[(v % 4) + ((v < 4) ? 4 : -4)]; // Get the corresponding vertex in the other face
+                float projected_corresponding_x = corresponding_vertex.position.x;
+                float projected_corresponding_y = corresponding_vertex.position.y;
+                draw_line_between_coordinates(app_context, projected_x, projected_y, projected_corresponding_x, projected_corresponding_y, vertex.color);
+            }
+            // Back face
+            else {
+                VertexData3D next_vertex = cube.vertices[4 + ((v - 4 + 1) % 4)]; // Get the next vertex in the back face (wrap around to the first vertex after the last one)
+                float projected_x = vertex.position.x;
+                float projected_y = vertex.position.y;
+                float projected_next_x = next_vertex.position.x;
+                float projected_next_y = next_vertex.position.y;
+                //printf("Back face projected X and Y coordinates for vertex %d: (%f, %f)\n", v, projected_x, projected_y);
+                draw_pixel_at_coordinates(app_context, projected_x, projected_y, vertex.color);
+                draw_line_between_coordinates(app_context, projected_x, projected_y, projected_next_x, projected_next_y, vertex.color);
+            }
+        }
     }
     return 0;
 }
