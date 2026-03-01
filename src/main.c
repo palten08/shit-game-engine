@@ -89,7 +89,7 @@ int main(void) {
         uint32_t square_color;
 
         time_accumulator += delta_time;
-        if (time_accumulator > 16.67) {
+        if (time_accumulator > 0.0167 ) {
             square_color = SDL_GetPerformanceCounter() | 0xFF000000; // Get a color that changes every frame, but is always fully opaque
             time_accumulator = 0;
         }
@@ -102,7 +102,7 @@ int main(void) {
 
         clear_frame_buffer(&app_context); // Clear first
 
-        test_scene = test_update_scene(&test_scene);
+        test_scene = test_update_scene(&test_scene, delta_time);
         write_scene_to_frame_buffer(&app_context, &test_scene);
 
         SDL_UnlockTexture(app_context.texture);

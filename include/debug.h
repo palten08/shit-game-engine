@@ -2,4 +2,4 @@
 
 #include "types.h"
 
-Scene test_update_scene(Scene *scene);
+Scene test_update_scene(Scene *scene, double delta_time);

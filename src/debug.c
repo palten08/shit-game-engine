@@ -3,12 +3,12 @@
 #include "../include/matrix.h"
 #include "../include/vector.h"
 
-Scene test_update_scene(Scene *scene) {
+Scene test_update_scene(Scene *scene, double delta_time) {
     for (int i = 0; i < scene->square_count; i++) {
         // Create a rotation matrix for the current square's rotation angle
         Matrix3 rotation_matrix = mat3_create_rotation_matrix(scene->squares[i].current_rotation_angle);
         // Increment the square's rotation angle for the next frame
-        scene->squares[i].current_rotation_angle += 0.01f; // Adjust
+        scene->squares[i].current_rotation_angle += 1.0f * delta_time; // Adjust
 
         // Translation matrix used for moving the vertex position to the origin
         Matrix3 to_origin_matrix = mat3_create_translation_matrix(-scene->squares[i].origin.x, -scene->squares[i].origin.y);
@@ -39,7 +39,7 @@ Scene test_update_scene(Scene *scene) {
         Matrix4 rotation_matrix = mat4_multiply(rotation_z, mat4_multiply(rotation_y, rotation_x)); // Combine the x, y, and z rotation matrices into a single rotation matrix that I can apply to the vertex position in one step
         
         // Increment the cube's rotation angle for the next frame
-        scene->cubes[i].current_rotation_angle += 0.01f; // Adjust
+        scene->cubes[i].current_rotation_angle += 1.0f * delta_time; // Adjust
 
         // Translation matrix used for moving the vertex position to the origin
         Matrix4 to_origin_matrix = mat4_create_translation_matrix(-scene->cubes[i].origin.x, -scene->cubes[i].origin.y, -scene->cubes[i].origin.z);
