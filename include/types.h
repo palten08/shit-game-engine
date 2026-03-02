@@ -20,6 +20,16 @@ typedef struct {
 } Vector2i;
 
 /**
+ * @brief A 2D floating-point vector structure used for mathematical operations, containing two 4-byte float members: x and y.
+ * 
+ * 8 bytes
+*/
+typedef struct {
+    float x; // 4-bytes
+    float y; // 4-bytes
+} Vector2f;
+
+/**
  * @brief A 3D floating-point vector structure used for mathematical operations, containing three 4-byte float members: x, y, and z.
  * 
  * 12 bytes
@@ -110,6 +120,7 @@ typedef struct {
 typedef struct {
     Vector2i position; // 8-bytes
     uint32_t color; // 4-bytes
+    bool is_visible; // 1 byte
 } VertexData2D;
 
 /**
@@ -121,6 +132,7 @@ typedef struct {
 typedef struct {
     Vector3f position; // 12-bytes
     uint32_t color; // 4-bytes
+    bool is_visible; // 1 byte
 } VertexData3D;
 
 /**
@@ -158,6 +170,7 @@ typedef struct {
     VertexData3D vertices[8]; // 128 bytes
     Vector3f original_vertices[8]; // 96 bytes
     Vector3f origin; // 12 bytes
+    Vector3f current_position; // 12 bytes
     float current_rotation_angle; // 4-bytes
 } CubeData3D;
 
@@ -201,3 +214,18 @@ typedef struct {
 typedef struct {
     float m[3][3]; // 9 floats, 36 bytes
 } Matrix3;
+
+/**
+ * @brief A structure representing a virtual camera in 3D space, including its field of view, aspect ratio, and near and far clipping planes.
+ * 
+ * 80 bytes
+ */
+typedef struct {
+    Matrix4 view_matrix; // 64 bytes
+    Matrix4 perspective_projection_matrix; // 64 bytes
+    Vector3f current_position; // 12 bytes
+    float field_of_view; // 4-bytes
+    float aspect_ratio; // 4-bytes
+    float near_plane; // 4-bytes
+    float far_plane; // 4-bytes
+} VirtualCamera;
