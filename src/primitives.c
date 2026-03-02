@@ -44,5 +44,49 @@ CubeData3D create_3D_cube(uint32_t color, int size) {
     // Set the current rotation angle to 0
     new_cube.current_rotation_angle = 0.0f;
 
+    // Triangulation
+    new_cube.faces[0] = (QuadData3D){
+        .triangles = {
+            {.vertex_indices = {0, 1, 2}, .color = 0xFFFF0000, .is_visible = true},
+            {.vertex_indices = {0, 2, 3}, .color = 0xFFFF0000, .is_visible = true}
+        },
+        .is_visible = true
+    };
+    new_cube.faces[1] = (QuadData3D){
+        .triangles = {
+            {.vertex_indices = {4, 5, 6}, .color = 0xFFFFFF00, .is_visible = true},
+            {.vertex_indices = {4, 6, 7}, .color = 0xFFFFFF00, .is_visible = true}
+        },
+        .is_visible = true
+    };
+    new_cube.faces[2] = (QuadData3D){
+        .triangles = {
+            {.vertex_indices = {0, 1, 5}, .color = 0xFFFFFFFF, .is_visible = true},
+            {.vertex_indices = {0, 5, 4}, .color = 0xFFFFFFFF, .is_visible = true}
+        },
+        .is_visible = true
+    };
+    new_cube.faces[3] = (QuadData3D){
+        .triangles = {
+            {.vertex_indices = {2, 3, 7}, .color = 0xFFFF00FF, .is_visible = true},
+            {.vertex_indices = {2, 7, 6}, .color = 0xFFFF00FF, .is_visible = true}
+        },
+        .is_visible = true
+    };
+    new_cube.faces[4] = (QuadData3D){
+        .triangles = {
+            {.vertex_indices = {0, 3, 7}, .color = 0xFF00FFFF, .is_visible = true},
+            {.vertex_indices = {0, 7, 4}, .color = 0xFF00FFFF, .is_visible = true}
+        },
+        .is_visible = true
+    };
+    new_cube.faces[5] = (QuadData3D){
+        .triangles = {
+            {.vertex_indices = {1, 2, 6}, .color = 0xFF00FFFF, .is_visible = true},
+            {.vertex_indices = {1, 6, 5}, .color = 0xFF00FFFF, .is_visible = true}
+        },
+        .is_visible = true
+    };
+
     return new_cube;
 }

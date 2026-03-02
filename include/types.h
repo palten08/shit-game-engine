@@ -6,8 +6,12 @@
 
 // Double check alignment!
 
+/** @defgroup Vectors Vector Structures
+ *  @{
+ */
 
 /** @struct Vector2i
+ *
  * @brief A 2D integer vector structure used for screen coordinates.
  * 
  * 8 bytes
@@ -52,6 +56,8 @@ typedef struct {
     float z; // 4-bytes
     float w; // 4-bytes
 } Vector4f;
+
+/** @} */ // End of Vectors group
 
 /**
  * @brief A structure representing the positions of key points on the screen, including corners, edges, and the center. All represented by 2D vectors containing their screen coordinates.
@@ -161,12 +167,24 @@ typedef struct {
     float current_rotation_angle; // 4-bytes
 } SquareData2D;
 
+typedef struct {
+    int vertex_indices[3]; // 12 bytes
+    uint32_t color; // 4-bytes
+    bool is_visible; // 1 byte
+} TriangleData3D;
+
+typedef struct {
+    TriangleData3D triangles[2]; // 24 bytes
+    bool is_visible; // 1 byte
+} QuadData3D;
+
 /**
  * @brief A structure representing a 3D cube, including its vertices.
  * 
  * 208 bytes
  */
 typedef struct {
+    QuadData3D faces[6]; // 144 bytes
     VertexData3D vertices[8]; // 128 bytes
     Vector3f original_vertices[8]; // 96 bytes
     Vector3f origin; // 12 bytes
