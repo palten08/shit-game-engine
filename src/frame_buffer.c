@@ -167,10 +167,14 @@ int write_scene_to_frame_buffer(AppContext *app_context, Scene *scene) {
         // Draw the vertices and the edges at the same time by just looking ahead to the next vert and using that as the end point
         for (int v = 0; v < 8; v++) {
             VertexData3D vertex = cube.vertices[v];
+            
             // Connect the vertices to form the edges of the cube
             // Front face
             if (v < 4) {
                 VertexData3D next_vertex = cube.vertices[(v + 1) % 4]; // Get the next vertex in the front face (wrap around to the first vertex after the last one)
+                if (!vertex.is_visible || !next_vertex.is_visible) {
+                    continue; // Don't draw edges for any vertex that is not visible
+                }
                 float projected_x = vertex.position.x;
                 float projected_y = vertex.position.y;
                 float projected_next_x = next_vertex.position.x;
@@ -181,13 +185,18 @@ int write_scene_to_frame_buffer(AppContext *app_context, Scene *scene) {
                 
                 // Connect front and back faces
                 VertexData3D corresponding_vertex = cube.vertices[(v % 4) + ((v < 4) ? 4 : -4)]; // Get the corresponding vertex in the other face
-                float projected_corresponding_x = corresponding_vertex.position.x;
-                float projected_corresponding_y = corresponding_vertex.position.y;
-                draw_line_between_coordinates(app_context, projected_x, projected_y, projected_corresponding_x, projected_corresponding_y, vertex.color);
+                if (corresponding_vertex.is_visible) {
+                    float projected_corresponding_x = corresponding_vertex.position.x;
+                    float projected_corresponding_y = corresponding_vertex.position.y;
+                    draw_line_between_coordinates(app_context, projected_x, projected_y, projected_corresponding_x, projected_corresponding_y, vertex.color);
+                }
             }
             // Back face
             else {
                 VertexData3D next_vertex = cube.vertices[4 + ((v - 4 + 1) % 4)]; // Get the next vertex in the back face (wrap around to the first vertex after the last one)
+                if (!vertex.is_visible ||!next_vertex.is_visible) {
+                    continue; // Don't draw edges for any vertex that is not visible
+                }
                 float projected_x = vertex.position.x;
                 float projected_y = vertex.position.y;
                 float projected_next_x = next_vertex.position.x;

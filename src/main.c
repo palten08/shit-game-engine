@@ -4,6 +4,8 @@
 #include "../include/utils.h"
 #include "../include/debug.h"
 #include "../include/scene.h"
+#include "../include/camera.h"
+#include "../include/input_actions.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,75 +27,24 @@ int main(void) {
     double delta_time = 0;
     double time_accumulator = 0;
 
-    ScreenPositions_Unioned screen_positions;
+    VirtualCamera virtual_camera = initialize_virtual_camera(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, 90.0f, 0.1f, 500.0f, (Vector3f){0.0f, 0.0f, 250.0f});
 
-    screen_positions.named.top_left = (Vector2i){0, 0};
-    screen_positions.named.top_middle = (Vector2i){WINDOW_RESOLUTION.x / 2, 0};
-    screen_positions.named.top_right = (Vector2i){WINDOW_RESOLUTION.x, 0};
-    screen_positions.named.middle_left = (Vector2i){0, WINDOW_RESOLUTION.y / 2};
-    screen_positions.named.middle_right = (Vector2i){WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y / 2};
-    screen_positions.named.bottom_left = (Vector2i){0, WINDOW_RESOLUTION.y};
-    screen_positions.named.bottom_middle = (Vector2i){WINDOW_RESOLUTION.x / 2, WINDOW_RESOLUTION.y};
-    screen_positions.named.bottom_right = (Vector2i){WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y};
-    screen_positions.named.absolute_middle = (Vector2i){WINDOW_RESOLUTION.x / 2, WINDOW_RESOLUTION.y / 2};
-
-    Scene test_scene = create_test_scene(&screen_positions);
+    Scene test_scene = create_test_scene();
     
     while (app_context.application_running) {
         delta_time = get_delta_time(&ticks_now, &ticks_last);
 
         double frame_rate = get_instantaneous_frame_rate(&ticks_now, &ticks_last);
 
-        // https://wiki.libsdl.org/SDL2/SDL_Event
-        SDL_Event sdl_event;
+        handle_input(&app_context);
 
-        // https://wiki.libsdl.org/SDL2/SDL_PollEvent
-        while (SDL_PollEvent(&sdl_event)) { 
-            switch (sdl_event.type) {
-                // https://wiki.libsdl.org/SDL2/SDL_QUIT ~ https://wiki.libsdl.org/SDL2/SDL_EventType
-                case SDL_QUIT:
-                    app_context.application_running = false;
-                    break;
-                // https://wiki.libsdl.org/SDL2/SDL_KEYDOWN ~ https://wiki.libsdl.org/SDL2/SDL_EventType
-                case SDL_KEYDOWN:
-                    printf("Key pressed\n");
-                    printf("%d\n", sdl_event.key.keysym.sym);
-                    switch (sdl_event.key.keysym.sym) {
-                        // https://wiki.libsdl.org/SDL2/SDL_Keycode
-                        // Debug thing to test out opening new windows
-                        case SDLK_TAB:
-                            SDL_Window *new_sub_sdl_window = SDL_CreateWindow("Sub Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 400, 300, SDL_WINDOW_SHOWN);
-                            break;
-                    }
-                    break;
-                // https://wiki.libsdl.org/SDL2/SDL_WINDOWEVENT ~ https://wiki.libsdl.org/SDL2/SDL_EventType
-                case SDL_WINDOWEVENT:
-                    switch (sdl_event.window.event) {
-                        // https://wiki.libsdl.org/SDL2/SDL_WindowEventID
-                        // Debug thing to test out closing windows
-                        case SDL_WINDOWEVENT_CLOSE:
-                            printf("Window closed\n");
-                            SDL_Window *window_to_close = SDL_GetWindowFromID(sdl_event.window.windowID);
-                            if (window_to_close != NULL) {
-                                if (window_to_close == app_context.window) {
-                                    app_context.application_running = false;
-                                    break;
-                                }
-                                SDL_DestroyWindow(window_to_close);
-                            }
-                            break;
-                    }
-                    break;
-            }
-        }
-        uint32_t square_color;
-
+        // To-do move this elsewhere later
         time_accumulator += delta_time;
         if (time_accumulator > 0.0167 ) {
-            square_color = SDL_GetPerformanceCounter() | 0xFF000000; // Get a color that changes every frame, but is always fully opaque
             time_accumulator = 0;
         }
 
+        // All of this stuff can likely go to its own thing but that's for later
         int texture_lock_result = SDL_LockTexture(app_context.texture, NULL, (void**)&app_context.frame_buffer, &(int){0});
         if (texture_lock_result != 0) {
             fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
@@ -102,7 +53,7 @@ int main(void) {
 
         clear_frame_buffer(&app_context); // Clear first
 
-        test_scene = test_update_scene(&test_scene, delta_time);
+        test_scene = test_update_scene(&test_scene, &virtual_camera, delta_time);
         write_scene_to_frame_buffer(&app_context, &test_scene);
 
         SDL_UnlockTexture(app_context.texture);

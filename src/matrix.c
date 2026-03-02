@@ -134,6 +134,26 @@ Matrix4 mat4_create_rotation_z_matrix(float angle) {
 }
 
 /**
+ * @brief Creates a perspective projection matrix.
+ * A perspective projection matrix is used to create a sense of depth in 3D graphics by simulating the way objects appear smaller as they get further away from the viewer.
+ * @param fov The field of view angle in radians.
+ * @param aspect_ratio The aspect ratio of the viewport (width divided by height).
+ * @param near_plane The distance to the near clipping plane.
+ * @param far_plane The distance to the far clipping plane.
+ * @return The resulting perspective projection matrix.
+ */
+Matrix4 mat4_create_perspective_projection_matrix(float fov, float aspect_ratio, float near_plane, float far_plane) {
+    Matrix4 result = {0};
+    float f = 1.0f / tanf(fov / 2.0f);
+    result.m[0][0] = f / aspect_ratio;
+    result.m[1][1] = f;
+    result.m[2][2] = (far_plane + near_plane) / (near_plane - far_plane);
+    result.m[2][3] = (2.0f * far_plane * near_plane) / (near_plane - far_plane);
+    result.m[3][2] = -1.0f;
+    return result;
+}
+
+/**
  *  @brief Creates an identity matrix for 3x3 matrices.
  * The identity matrix is a square matrix with ones on the main diagonal and zeros elsewhere.
  * @return A 3x3 identity matrix.
