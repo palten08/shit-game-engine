@@ -1,5 +1,8 @@
-#include "../include/frame_buffer.h"
+#include <SDL2/SDL.h>
+
+#include "../include/rasterizer.h"
 #include "../include/types.h"
+#include "../include/app.h"
 
 /**
  * @brief Sets the entire frame buffer to a specific color.
@@ -139,73 +142,34 @@ int draw_line_between_coordinates(AppContext *app_context, int x1, int y1, int x
 }
 
 /**
- * @brief Iterates over the scene and draws all the squares and lines contained within it.
+ * @brief Iterates over the render list and draws all the triangles contained within it.
  * @param app_context A pointer to the application context.
- * @param scene A pointer to the scene to be rendered.
+ * @param render_list A pointer to the render list to be rendered.
  * @return 0 on success.
  */
-int write_scene_to_frame_buffer(AppContext *app_context, Scene *scene) {
-    for (int i = 0; i < scene->square_count; i++) {
-        SquareData2D square = scene->squares[i];
-        // Draw the vertices and the edges at the same time by just looking ahead to the next vert and using that as the end point
-        for (int v = 0; v < 4; v++) {
-            VertexData2D vertex = square.vertices[v];
-            VertexData2D next_vertex = square.vertices[(v + 1) % 4]; // Get the next vertex in the square (wrap around to the first vertex after the last one)
-            draw_pixel_at_coordinates(app_context, vertex.position.x, vertex.position.y, vertex.color);
-            draw_line_between_coordinates(app_context, vertex.position.x, vertex.position.y, next_vertex.position.x, next_vertex.position.y, vertex.color);
-        }
+int rasterize_render_list(AppContext *app_context, RenderList *render_list) {
+    for (int i = 0; i < render_list->triangle_count; i++) {
+        RenderTriangle *triangle = &render_list->triangles[i];
+        draw_line_between_coordinates(app_context, triangle->screen_positions[0].x, triangle->screen_positions[0].y, triangle->screen_positions[1].x, triangle->screen_positions[1].y, triangle->color);
+        draw_line_between_coordinates(app_context, triangle->screen_positions[1].x, triangle->screen_positions[1].y, triangle->screen_positions[2].x, triangle->screen_positions[2].y, triangle->color);
+        draw_line_between_coordinates(app_context, triangle->screen_positions[2].x, triangle->screen_positions[2].y, triangle->screen_positions[0].x, triangle->screen_positions[0].y, triangle->color);
     }
-    for (int i = 0; i < scene->line_count; i++) {
-        LineData2D line = scene->lines[i];
-        // Draw any lines in the scene
-        draw_line_between_coordinates(app_context, line.start.x, line.start.y, line.end.x, line.end.y, line.color);
-        //draw_line_between_coordinates(app_context, line.start.x, line.start.y, line.end.x, line.end.y, line.color);
+    return 0;
+}
+
+int render(AppContext *app_context, RenderList *render_list) {
+    int texture_lock_result = SDL_LockTexture(app_context->texture, NULL, (void**)&app_context->frame_buffer, &(int){0});
+    if (texture_lock_result != 0) {
+        fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
+        return 1;
     }
-    for (int i = 0; i < scene->cube_count; i++) {
-        // Stupid simple orthographic projection for right now
-        CubeData3D cube = scene->cubes[i];
-        // Draw the vertices and the edges at the same time by just looking ahead to the next vert and using that as the end point
-        for (int v = 0; v < 8; v++) {
-            VertexData3D vertex = cube.vertices[v];
-            
-            // Connect the vertices to form the edges of the cube
-            // Front face
-            if (v < 4) {
-                VertexData3D next_vertex = cube.vertices[(v + 1) % 4]; // Get the next vertex in the front face (wrap around to the first vertex after the last one)
-                if (!vertex.is_visible || !next_vertex.is_visible) {
-                    continue; // Don't draw edges for any vertex that is not visible
-                }
-                float projected_x = vertex.position.x;
-                float projected_y = vertex.position.y;
-                float projected_next_x = next_vertex.position.x;
-                float projected_next_y = next_vertex.position.y;
-                //printf("Front face projected X and Y coordinates for vertex %d: (%f, %f)\n", v, projected_x, projected_y);
-                draw_pixel_at_coordinates(app_context, projected_x, projected_y, vertex.color);
-                draw_line_between_coordinates(app_context, projected_x, projected_y, projected_next_x, projected_next_y, vertex.color);
-                
-                // Connect front and back faces
-                VertexData3D corresponding_vertex = cube.vertices[(v % 4) + ((v < 4) ? 4 : -4)]; // Get the corresponding vertex in the other face
-                if (corresponding_vertex.is_visible) {
-                    float projected_corresponding_x = corresponding_vertex.position.x;
-                    float projected_corresponding_y = corresponding_vertex.position.y;
-                    draw_line_between_coordinates(app_context, projected_x, projected_y, projected_corresponding_x, projected_corresponding_y, vertex.color);
-                }
-            }
-            // Back face
-            else {
-                VertexData3D next_vertex = cube.vertices[4 + ((v - 4 + 1) % 4)]; // Get the next vertex in the back face (wrap around to the first vertex after the last one)
-                if (!vertex.is_visible ||!next_vertex.is_visible) {
-                    continue; // Don't draw edges for any vertex that is not visible
-                }
-                float projected_x = vertex.position.x;
-                float projected_y = vertex.position.y;
-                float projected_next_x = next_vertex.position.x;
-                float projected_next_y = next_vertex.position.y;
-                //printf("Back face projected X and Y coordinates for vertex %d: (%f, %f)\n", v, projected_x, projected_y);
-                draw_pixel_at_coordinates(app_context, projected_x, projected_y, vertex.color);
-                draw_line_between_coordinates(app_context, projected_x, projected_y, projected_next_x, projected_next_y, vertex.color);
-            }
-        }
-    }
+
+    clear_frame_buffer(app_context); // Clear first
+    
+    rasterize_render_list(app_context, render_list);
+
+    SDL_UnlockTexture(app_context->texture);
+    SDL_RenderCopy(app_context->renderer, app_context->texture, NULL, NULL);
+    SDL_RenderPresent(app_context->renderer);
     return 0;
 }

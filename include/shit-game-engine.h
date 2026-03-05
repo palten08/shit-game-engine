@@ -1,0 +1,19 @@
+#pragma once
+
+#include <SDL2/SDL.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include "types.h"
+#include "app.h"
+#include "clipping.h"
+#include "coordinates.h"
+#include "ecs.h"
+#include "input_actions.h"
+#include "matrix_operations.h"
+#include "rendering_pipeline.h"
+#include "rasterizer.h"
+#include "scene.h"
+#include "utils.h"
+#include "vector_operations.h"
+#include "virtual_camera.h"

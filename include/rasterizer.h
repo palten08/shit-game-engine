@@ -1,6 +1,8 @@
 #pragma once
 
 #include "types.h"
+#include "app.h"
+#include "scene.h"
 
 int set_frame_buffer(AppContext *app_context, uint32_t color);
 
@@ -14,4 +16,6 @@ int draw_vertical_line_between_coordinates(AppContext *app_context, int x1, int 
 
 int draw_line_between_coordinates(AppContext *app_context, int x1, int y1, int x2, int y2, uint32_t color);
 
-int write_scene_to_frame_buffer(AppContext *app_context, Scene *scene);
+int rasterize_render_list(AppContext *app_context, RenderList *render_list);
+
+int render(AppContext *app_context, RenderList *render_list);

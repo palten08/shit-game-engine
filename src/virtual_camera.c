@@ -1,6 +1,6 @@
-#include "../include/camera.h"
+#include "../include/virtual_camera.h"
 #include "../include/types.h"
-#include "../include/matrix.h"
+#include "../include/matrix_operations.h"
 #include <math.h>
 
 /**
