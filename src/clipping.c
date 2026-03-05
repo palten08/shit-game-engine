@@ -103,14 +103,13 @@ static Vector4f calculate_intersection(Vector4f start_vertex, Vector4f end_verte
     return intersection;
 }
 
-TriangleData3D clip_triangle(Vector4f clip_space_vertices[3]) {
+ClippingResult clip_triangle(Vector4f clip_space_vertices[3]) {
     Vector4f vertex_index_buffer_a[9] = {clip_space_vertices[0], clip_space_vertices[1], clip_space_vertices[2]}; // Start with the original triangle vertices in the buffer
     Vector4f vertex_index_buffer_b[9]; // A second buffer to store intermediate results during clipping
     Vector4f *vertex_index_input = vertex_index_buffer_a; // Pointer to the current input buffer
     Vector4f *vertex_index_output = vertex_index_buffer_b; // Pointer to the current output buffer
     int input_count = 3;
 
-    VertexData3D output_vertices[9];
     int output_vertex_count = 0;
     for (int frustum_plane = LEFT_PLANE; frustum_plane <= FAR_PLANE; frustum_plane++) {
         for (int i = 0; i < input_count; i++) {
@@ -138,14 +137,11 @@ TriangleData3D clip_triangle(Vector4f clip_space_vertices[3]) {
         output_vertex_count = 0;
     }
 
-    // Build output triangle data from the vertex index buffer
-    TriangleData3D output_triangle;
-    for (int i = 0; i < input_count && i < 3; i++) {
-        output_triangle.vertex_indices[i] = i; // Just use the index in the buffer as the vertex index for now, since we don't have an actual vertex list to reference here
-        output_vertices[i].position = (Vector3f){vertex_index_input[i].x, vertex_index_input[i].y, vertex_index_input[i].z}; // Convert from Vector4f to Vector3f by dropping the w component
-        output_vertices[i].color = 0xFFFFFFFF; // Set the color to white for now, since we don't have actual vertex colors to reference here
-        output_vertices[i].is_visible = true; // Mark the vertex as visible since it's inside the frustum
+    // The final clipped vertices are now in the input buffer
+    ClippingResult result = {0};
+    result.vertex_count = input_count;
+    for (int i = 0; i < input_count; i++) {
+        result.vertices[i] = vertex_index_input[i];
     }
-    output_triangle.is_visible = (input_count > 0); // The triangle is visible if it has at least one vertex inside the frustum
-    return output_triangle;
+    return result;
 }

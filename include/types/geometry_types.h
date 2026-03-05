@@ -40,6 +40,7 @@ typedef struct {
  */
 typedef struct {
     Point3D vertices[3]; // 84 bytes
+    int vertex_indices[3]; // 12 bytes
     Vector3f normal; // 12 bytes
     uint32_t color; // 4 bytes
 } Triangle3D;

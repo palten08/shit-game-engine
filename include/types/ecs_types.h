@@ -4,12 +4,22 @@
 
 #include "vector_types.h"
 #include "geometry_types.h"
-#include "../scene.h"
+
 
 /** @defgroup ECS Entity Component System Structures
  *  @{
  */
 
+/**
+ * @brief A forward declaration of the Scene structure.
+ */
+typedef struct Scene Scene;
+
+/**
+ * @brief A type representing an entity in the ECS.
+ * 
+ * 4 bytes
+ */
 typedef int Entity;
 
 /**
@@ -59,7 +69,7 @@ typedef struct {
  * 
  * 8 bytes
  */
-typedef void (*SystemFunction)(Scene *scene, float delta_time);
+typedef void (*SystemFunction)(Scene *scene, double delta_time);
 
 /**
  * @brief A structure representing a system, which processes entities that have specific components
@@ -68,7 +78,7 @@ typedef void (*SystemFunction)(Scene *scene, float delta_time);
  */
 typedef struct {
     uint64_t required_components; // 8 bytes
-    SystemFunction update; // 8 bytes
+    SystemFunction function; // 8 bytes
 } System;
 
 /**
@@ -81,5 +91,9 @@ typedef struct {
     size_t size; // 8 bytes
     int count; // 4 bytes
 } SystemArray;
+
+/** IDs for built-in engine component types */
+extern int TRANSFORM;
+extern int MESH;
 
  /** @} */ // End of ECS group

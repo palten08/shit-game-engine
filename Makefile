@@ -1,16 +1,19 @@
 CC      = gcc
-CFLAGS  = -g $(shell sdl2-config --cflags)
+CFLAGS  = -g -Wall -Wextra -Iinclude $(shell sdl2-config --cflags)
+SRC     = $(wildcard src/*.c)
+OBJ     = $(SRC:src/%.c=build/%.o)
 LDFLAGS = $(shell sdl2-config --libs) -lm
 RM      = rm -f
 
 
-default: all
+default: libsge.a
 
-all: sge
+libsge.a: $(OBJ)
+	ar rcs libsge.a $(OBJ)
 
-sge: src/main.c src/app.c src/rasterizer.c src/utils.c src/debug.c src/scene.c src/vector_operations.c src/matrix_operations.c src/primitives.c src/coordinates.c src/virtual_camera.c src/input_actions.c src/clipping.c src/parson.c
-	mkdir -p bin
-	$(CC) $(CFLAGS) -o bin/sge src/main.c src/app.c src/rasterizer.c src/utils.c src/debug.c src/scene.c src/vector_operations.c src/matrix_operations.c src/primitives.c src/coordinates.c src/virtual_camera.c src/input_actions.c src/clipping.c src/parson.c $(LDFLAGS)
+build/%.o: src/%.c
+	mkdir -p build
+	$(CC) $(CFLAGS) -c $< -o $@
 
-clean veryclean:
-	$(RM) bin/sge
+clean:
+	$(RM) -r build libsge.a
