@@ -8,9 +8,9 @@ default: all
 
 all: sge
 
-sge: src/main.c src/sdl.c src/frame_buffer.c src/utils.c src/debug.c src/scene.c src/vector.c src/matrix.c src/primitives.c src/coordinates.c src/camera.c src/input_actions.c
+sge: src/main.c src/app.c src/rasterizer.c src/utils.c src/debug.c src/scene.c src/vector_operations.c src/matrix_operations.c src/primitives.c src/coordinates.c src/virtual_camera.c src/input_actions.c src/clipping.c src/parson.c
 	mkdir -p bin
-	$(CC) $(CFLAGS) -o bin/sge src/main.c src/sdl.c src/frame_buffer.c src/utils.c src/debug.c src/scene.c src/vector.c src/matrix.c src/primitives.c src/coordinates.c src/camera.c src/input_actions.c $(LDFLAGS)
+	$(CC) $(CFLAGS) -o bin/sge src/main.c src/app.c src/rasterizer.c src/utils.c src/debug.c src/scene.c src/vector_operations.c src/matrix_operations.c src/primitives.c src/coordinates.c src/virtual_camera.c src/input_actions.c src/clipping.c src/parson.c $(LDFLAGS)
 
 clean veryclean:
 	$(RM) bin/sge

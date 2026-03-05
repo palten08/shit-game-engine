@@ -1,4 +1,4 @@
-#include "../include/sdl.h"
+#include "../include/app.h"
 #include "../include/types.h"
 #include <SDL2/SDL.h>
 

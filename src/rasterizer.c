@@ -1,5 +1,6 @@
-#include "../include/frame_buffer.h"
+#include "../include/rasterizer.h"
 #include "../include/types.h"
+#include "../include/app.h"
 
 /**
  * @brief Sets the entire frame buffer to a specific color.

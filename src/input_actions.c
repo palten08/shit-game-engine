@@ -1,5 +1,6 @@
-#include "../include/input_actions.h"
 #include <SDL2/SDL.h>
+#include "../include/input_actions.h"
+#include "../include/app.h"
 
 /**
  * @brief Creates an SDL window separate from the main window

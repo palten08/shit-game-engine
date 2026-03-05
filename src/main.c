@@ -1,10 +1,10 @@
 #include "../include/types.h"
-#include "../include/frame_buffer.h"
-#include "../include/sdl.h"
+#include "../include/rasterizer.h"
+#include "../include/app.h"
 #include "../include/utils.h"
 #include "../include/debug.h"
 #include "../include/scene.h"
-#include "../include/camera.h"
+#include "../include/virtual_camera.h"
 #include "../include/input_actions.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
@@ -29,7 +29,8 @@ int main(void) {
 
     VirtualCamera virtual_camera = initialize_virtual_camera(WINDOW_RESOLUTION.x, WINDOW_RESOLUTION.y, 90.0f, 0.1f, 500.0f, (Vector3f){0.0f, 0.0f, 250.0f});
 
-    Scene test_scene = create_test_scene();
+    //Scene test_scene = create_test_scene();
+    Scene test_scene = create_scene_from_file("/home/pete/C Development/sge-test-project/main_scene.json");
     
     while (app_context.application_running) {
         delta_time = get_delta_time(&ticks_now, &ticks_last);
@@ -53,7 +54,7 @@ int main(void) {
 
         clear_frame_buffer(&app_context); // Clear first
 
-        test_scene = test_update_scene(&test_scene, &virtual_camera, delta_time);
+        //test_scene = test_update_scene(&test_scene, &virtual_camera, delta_time);
         write_scene_to_frame_buffer(&app_context, &test_scene);
 
         SDL_UnlockTexture(app_context.texture);

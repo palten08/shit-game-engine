@@ -1,4 +1,4 @@
-#include "../include/matrix.h"
+#include "../include/matrix_operations.h"
 #include "../include/types.h"
 
 /** Creates an identity matrix. */

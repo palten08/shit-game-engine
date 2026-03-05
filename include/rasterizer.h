@@ -1,6 +1,8 @@
 #pragma once
 
 #include "types.h"
+#include "app.h"
+#include "scene.h"
 
 int set_frame_buffer(AppContext *app_context, uint32_t color);
 

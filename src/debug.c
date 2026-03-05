@@ -1,8 +1,10 @@
 #include "../include/debug.h"
 #include "../include/types.h"
-#include "../include/matrix.h"
-#include "../include/vector.h"
+#include "../include/matrix_operations.h"
+#include "../include/vector_operations.h"
 #include "../include/coordinates.h"
+#include "../include/clipping.h"
+#include "../include/virtual_camera.h"
 
 Scene test_update_scene(Scene *scene, VirtualCamera *virtual_camera, double delta_time) {
     for (int i = 0; i < scene->cube_count; i++) {
@@ -40,6 +42,9 @@ Scene test_update_scene(Scene *scene, VirtualCamera *virtual_camera, double delt
 
             // This gives us vertex positions in clip space, which is what we need for the perspective division step to get to NDC and then screen space
             Vector4f projected_vertex_pos = mat4_multiply_vec4(virtual_camera->perspective_projection_matrix, view_space_vertex_pos);
+
+            // Clip triangles here with Sutherland-Hodgman
+            //TriangleData3D clipped_triangle = clip_triangle((Vector4f[3]){projected_vertex_pos, projected_vertex_pos, projected_vertex_pos});
 
             if (projected_vertex_pos.w <= virtual_camera->near_plane || projected_vertex_pos.w >= virtual_camera->far_plane) {
                 scene->cubes[i].vertices[j].is_visible = false; // Mark the vertex as not visible if it's behind the camera
