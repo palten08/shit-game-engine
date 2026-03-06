@@ -4,6 +4,7 @@
 
 #include "vector_types.h"
 #include "geometry_types.h"
+#include "parson.h"
 
 
 /** @defgroup ECS Entity Component System Structures
@@ -54,13 +55,22 @@ typedef struct {
 } MeshComponent;
 
 /**
+ * @brief A function pointer type representing the function that will be used to parse a component from JSON data
+ * 
+ * 8 bytes
+ */
+typedef void (*ComponentParserFunction)(Scene *scene, Entity entity, int component_id, JSON_Object *json);
+
+/**
  * @brief A structure representing a component array
  * 
- * 20 bytes
+ * 60 bytes
  */
 typedef struct {
+    char name[32]; // 32 bytes
     void *data; // 8 bytes
     size_t size; // 8 bytes
+    ComponentParserFunction parser; // 8 bytes
     int count; // 4 bytes
 } ComponentArray;
 

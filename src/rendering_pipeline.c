@@ -8,7 +8,7 @@
 #include "../include/app.h"
 #include "../include/ecs.h"
 
-RenderList generate_render_list(Scene *scene, VirtualCamera *camera, AppContext *app_context) {
+RenderList generate_render_list(Scene *scene, AppContext *app_context) {
     RenderList generated_render_list = {0};
     for (int i = 0; i < scene->registered_entity_count; i++) {
         Entity entity = i;
@@ -21,8 +21,8 @@ RenderList generate_render_list(Scene *scene, VirtualCamera *camera, AppContext 
             Vector4f clip_space_vertices[3];
             for (int v = 0; v < 3; v++) {
                 Vector4f world_space_vertex = mat4_multiply_vec4(transform->model_matrix, (Vector4f){mesh->triangles[t].vertices[v].position.x, mesh->triangles[t].vertices[v].position.y, mesh->triangles[t].vertices[v].position.z, 1.0f});
-                Vector4f view_space_vertex = mat4_multiply_vec4(camera->view_matrix, world_space_vertex);
-                clip_space_vertices[v] = mat4_multiply_vec4(camera->perspective_projection_matrix, view_space_vertex);
+                Vector4f view_space_vertex = mat4_multiply_vec4(scene->virtual_camera.view_matrix, world_space_vertex);
+                clip_space_vertices[v] = mat4_multiply_vec4(scene->virtual_camera.perspective_projection_matrix, view_space_vertex);
             }
 
             // Clip triangles here

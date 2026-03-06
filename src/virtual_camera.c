@@ -13,13 +13,14 @@
  * @param far_plane_distance The distance to the far clipping plane.
  * @return A initialized VirtualCamera structure.
  */
-VirtualCamera initialize_virtual_camera(int resolution_x, int resolution_y, float field_of_view, float near_plane_distance, float far_plane_distance, Vector3f initial_position) {
+VirtualCamera initialize_virtual_camera(float aspect_ratio, float field_of_view, float near_plane_distance, float far_plane_distance, Vector3f initial_position, Vector3f initial_rotation) {
     VirtualCamera camera;
     camera.field_of_view = field_of_view * (atan(1)*4 / 180.0f); // Convert from degrees to radians
-    camera.aspect_ratio = (float)resolution_x / (float)resolution_y;
+    camera.aspect_ratio = aspect_ratio;
     camera.near_plane = near_plane_distance;
     camera.far_plane = far_plane_distance;
-    camera.current_position = initial_position;
+    camera.position = initial_position;
+    camera.rotation = initial_rotation;
     camera.view_matrix = mat4_create_translation_matrix(-initial_position.x, -initial_position.y, -initial_position.z); // Create a view matrix that translates the world in the opposite direction of the camera's position
     camera.perspective_projection_matrix = mat4_create_perspective_projection_matrix(camera.field_of_view, camera.aspect_ratio, camera.near_plane, camera.far_plane);
     return camera;

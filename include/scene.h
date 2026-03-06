@@ -2,6 +2,8 @@
 
 #include "types.h"
 
+#include "virtual_camera.h"
+
 #define MAX_ENTITIES 1024
 #define MAX_SYSTEMS 32
 #define MAX_COMPONENTS 24
@@ -11,8 +13,9 @@
  */
 typedef struct Scene {
     uint64_t component_masks[MAX_ENTITIES]; // 8192 bytes
-    ComponentArray component_array[MAX_COMPONENTS];
-    System systems[MAX_SYSTEMS];
+    ComponentArray component_array[MAX_COMPONENTS]; // 1440 bytes
+    System systems[MAX_SYSTEMS]; // 512 bytes
+    VirtualCamera virtual_camera; // 80 bytes
     int registered_entity_count; // 4 bytes
     int registered_component_count; // 4 bytes
     int registered_system_count; // 4 bytes
@@ -20,5 +23,4 @@ typedef struct Scene {
 } Scene;
 
 Scene initialize_scene();
-int register_component(Scene *scene, size_t component_size);
 Scene *load_scene_from_file(Scene *scene, const char *filename);

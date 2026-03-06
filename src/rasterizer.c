@@ -153,6 +153,7 @@ int rasterize_render_list(AppContext *app_context, RenderList *render_list) {
         draw_line_between_coordinates(app_context, triangle->screen_positions[0].x, triangle->screen_positions[0].y, triangle->screen_positions[1].x, triangle->screen_positions[1].y, triangle->color);
         draw_line_between_coordinates(app_context, triangle->screen_positions[1].x, triangle->screen_positions[1].y, triangle->screen_positions[2].x, triangle->screen_positions[2].y, triangle->color);
         draw_line_between_coordinates(app_context, triangle->screen_positions[2].x, triangle->screen_positions[2].y, triangle->screen_positions[0].x, triangle->screen_positions[0].y, triangle->color);
+        // Fill triangles here
     }
     return 0;
 }
