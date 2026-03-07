@@ -69,12 +69,15 @@ int cleanup_sdl_components(AppContext *app_context) {
     return 0;
 }
 
-void handle_sdl_quit_events(AppContext *app_context) {
+void handle_sdl_events(AppContext *app_context) {
     SDL_Event sdl_event;
     while (SDL_PollEvent(&sdl_event)) {
         switch (sdl_event.type) {
             case SDL_QUIT:
                 app_context->application_running = false;
+                break;
+            case SDL_MOUSEWHEEL:
+                app_context->scroll_wheel_delta_this_frame += sdl_event.wheel.y;
                 break;
         }
     }
