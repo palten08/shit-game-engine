@@ -16,6 +16,8 @@
  */
 typedef struct Scene Scene;
 
+typedef struct AppContext AppContext;
+
 /**
  * @brief A type representing an entity in the ECS.
  * 
@@ -79,7 +81,7 @@ typedef struct {
  * 
  * 8 bytes
  */
-typedef void (*SystemFunction)(Scene *scene, double delta_time);
+typedef void (*SystemFunction)(Scene *scene, AppContext *app_context);
 
 /**
  * @brief A structure representing a system, which processes entities that have specific components

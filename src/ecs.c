@@ -1,6 +1,7 @@
 #include "../include/ecs.h"
 #include "../include/types.h"
 #include "../include/scene.h"
+#include "../include/app.h"
 #include "../include/matrix_operations.h"
 
 int TRANSFORM;
@@ -43,7 +44,7 @@ void *get_component(Scene *scene, int component_id, Entity entity) {
     return (void *)(char *)(scene->component_array[component_id].data + (entity * scene->component_array[component_id].size));
 }
 
-int register_system(Scene *scene, void (*system_function)(Scene *, double), uint64_t required_components) {
+int register_system(Scene *scene, void (*system_function)(Scene *, AppContext *), uint64_t required_components) {
     if (scene->registered_system_count >= MAX_SYSTEMS) {
         return -1; // No available slot for the system
     }
@@ -61,10 +62,10 @@ void *get_system(Scene *scene, int system_id) {
     return (void *)&scene->systems[system_id];
 }
 
-void run_systems(Scene *scene, double delta_time) {
+void run_systems(Scene *scene, AppContext *app_context) {
     for (int i = 0; i < scene->registered_system_count; i++) {
         System *system = &scene->systems[i];
-        system->function(scene, delta_time);
+        system->function(scene, app_context);
     }
 }
 

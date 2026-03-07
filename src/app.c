@@ -68,3 +68,14 @@ int cleanup_sdl_components(AppContext *app_context) {
     SDL_Quit();
     return 0;
 }
+
+void handle_sdl_quit_events(AppContext *app_context) {
+    SDL_Event sdl_event;
+    while (SDL_PollEvent(&sdl_event)) {
+        switch (sdl_event.type) {
+            case SDL_QUIT:
+                app_context->application_running = false;
+                break;
+        }
+    }
+}
