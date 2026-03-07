@@ -14,6 +14,7 @@ typedef struct {
     SDL_Renderer *renderer; // 8-bytes
     SDL_Texture *texture; // 8-bytes
     uint32_t *frame_buffer; // 8-bytes
+    DepthBuffer *depth_buffer; // 8 bytes
     double time_accumulator; // 8-bytes
     double delta_time; // 8-bytes
     bool application_running; // 1-byte

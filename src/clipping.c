@@ -83,10 +83,10 @@ static Vector4f calculate_intersection(Vector4f start_vertex, Vector4f end_verte
             t = (start_vertex.y - start_vertex.w) / -(direction.y - direction.w);
             break;
         case NEAR_PLANE:
-            if (direction.z == 0) {
+            if (direction.z + direction.w == 0) {
                 return start_vertex;
             }
-            t = -start_vertex.z / direction.z;
+            t = -(start_vertex.z + start_vertex.w) / (direction.z + direction.w);
             break;
         case FAR_PLANE:
             if (-(direction.z - direction.w) == 0) {
