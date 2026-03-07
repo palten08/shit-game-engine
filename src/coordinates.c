@@ -1,6 +1,7 @@
 #include "../include/coordinates.h"
 #include "../include/types.h"
 
+
 /**
  * @brief Converts clip space coordinates to normalized device coordinates (NDC) by performing perspective division.
  * This assumes you already have the coordinates in clip space computed

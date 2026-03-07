@@ -1,6 +1,7 @@
 #include "../include/ecs.h"
 #include "../include/types.h"
 #include "../include/scene.h"
+#include "../include/matrix_operations.h"
 
 int TRANSFORM;
 int MESH;
@@ -90,6 +91,13 @@ void parse_transform_component(Scene *scene, Entity entity, int component_id, JS
         transform_component->scale.y = json_object_get_number(scale_json, "y");
         transform_component->scale.z = json_object_get_number(scale_json, "z");
     }
+    Matrix4 translation_matrix = mat4_create_translation_matrix(transform_component->position.x, transform_component->position.y, transform_component->position.z);
+    Matrix4 rotation_x_matrix = mat4_create_rotation_x_matrix(transform_component->rotation.x);
+    Matrix4 rotation_y_matrix = mat4_create_rotation_y_matrix(transform_component->rotation.y);
+    Matrix4 rotation_z_matrix = mat4_create_rotation_z_matrix(transform_component->rotation.z);
+    Matrix4 rotation_matrix = mat4_multiply(rotation_z_matrix, mat4_multiply(rotation_y_matrix, rotation_x_matrix));
+    Matrix4 scale_matrix = mat4_create_scaling_matrix(transform_component->scale.x, transform_component->scale.y, transform_component->scale.z);
+    transform_component->model_matrix = mat4_multiply(translation_matrix, mat4_multiply(rotation_matrix, scale_matrix));
 }
 
 void parse_mesh_component(Scene *scene, Entity entity, int component_id, JSON_Object *json) {

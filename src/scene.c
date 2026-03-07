@@ -28,22 +28,23 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
     }
     JSON_Object *position_json = json_object_get_object(camera_json, "position");
     JSON_Object *rotation_json = json_object_get_object(camera_json, "rotation");
+    JSON_Object *look_target_json = json_object_get_object(camera_json, "look_target");
     if (!position_json || !rotation_json) {
         json_value_free(root_value);
         return scene; // Don't support not having a camera position or rotation
     }
-    scene->virtual_camera = initialize_virtual_camera(json_object_get_number(camera_json, "aspect_ratio"), json_object_get_number(camera_json, "field_of_view"), json_object_get_number(camera_json, "near_plane"), json_object_get_number(camera_json, "far_plane"), (Vector3f){json_object_get_number(position_json, "x"), json_object_get_number(position_json, "y"), json_object_get_number(position_json, "z")}, (Vector3f){json_object_get_number(rotation_json, "x"), json_object_get_number(rotation_json, "y"), json_object_get_number(rotation_json, "z")});
+    scene->virtual_camera = initialize_virtual_camera(json_object_get_number(camera_json, "aspect_ratio"), json_object_get_number(camera_json, "field_of_view"), json_object_get_number(camera_json, "near_plane"), json_object_get_number(camera_json, "far_plane"), (Vector3f){json_object_get_number(position_json, "x"), json_object_get_number(position_json, "y"), json_object_get_number(position_json, "z")}, (Vector3f){json_object_get_number(rotation_json, "x"), json_object_get_number(rotation_json, "y"), json_object_get_number(rotation_json, "z")}, (Vector3f){json_object_get_number(look_target_json, "x"), json_object_get_number(look_target_json, "y"), json_object_get_number(look_target_json, "z")});
 
     // Entity loading
     JSON_Array *entities_array = json_object_get_array(root_object, "entities");
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 1024; i++) {
         JSON_Object *entity_json = json_array_get_object(entities_array, i);
         if (!entity_json) {
             break; // No more entities in the array
         }
         Entity entity_id = register_entity(scene);
         JSON_Object *components = json_object_get_object(entity_json, "components");
-        for (int j = 0; j < 256; j++) {
+        for (int j = 0; j < 24; j++) {
             JSON_Object *component_json = json_object_get_object(components, json_object_get_name(components, j));
             if (!component_json) {
                 break; // No more components for this entity

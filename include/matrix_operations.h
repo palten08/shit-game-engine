@@ -11,6 +11,7 @@ Matrix4 mat4_create_rotation_x_matrix(float angle);
 Matrix4 mat4_create_rotation_y_matrix(float angle);
 Matrix4 mat4_create_rotation_z_matrix(float angle);
 Matrix4 mat4_create_perspective_projection_matrix(float fov, float aspect_ratio, float near_plane, float far_plane);
+Matrix4 mat4_create_look_at_matrix(Vector3f eye, Vector3f target, Vector3f up);
 
 Matrix3 mat3_identity();
 Matrix3 mat3_multiply(Matrix3 a, Matrix3 b);

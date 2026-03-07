@@ -1,4 +1,5 @@
 #include "../include/matrix_operations.h"
+#include "../include/vector_operations.h"
 #include "../include/types.h"
 
 /** Creates an identity matrix. */
@@ -150,6 +151,35 @@ Matrix4 mat4_create_perspective_projection_matrix(float fov, float aspect_ratio,
     result.m[2][2] = (far_plane + near_plane) / (near_plane - far_plane);
     result.m[2][3] = (2.0f * far_plane * near_plane) / (near_plane - far_plane);
     result.m[3][2] = -1.0f;
+    return result;
+}
+
+/**
+ * @brief Creates a look-at matrix for a camera.
+ * A look-at matrix is used to create a view transformation that positions and orients the camera in the scene. It defines the camera's position, the point it is looking at, and the up direction for the camera.
+ * @param eye The position of the camera in world space.
+ * @param target The point in world space that the camera is looking at.
+ * @param up The up direction for the camera, typically (0, 1, 0) for a camera that is upright.
+ * @return The resulting look-at matrix.
+ */
+Matrix4 mat4_create_look_at_matrix(Vector3f eye, Vector3f target, Vector3f up) {
+    Vector3f zaxis = vec3f_normalize(vec3f_subtract(eye, target)); // Forward
+    Vector3f xaxis = vec3f_normalize(vec3f_cross_product(up, zaxis)); // Right
+    Vector3f yaxis = vec3f_cross_product(zaxis, xaxis); // Up
+
+    Matrix4 result = mat4_identity();
+    result.m[0][0] = xaxis.x;
+    result.m[1][0] = yaxis.x;
+    result.m[2][0] = zaxis.x;
+    result.m[0][1] = xaxis.y;
+    result.m[1][1] = yaxis.y;
+    result.m[2][1] = zaxis.y;
+    result.m[0][2] = xaxis.z;
+    result.m[1][2] = yaxis.z;
+    result.m[2][2] = zaxis.z;
+    result.m[0][3] = -vec3f_dot_product(xaxis, eye);
+    result.m[1][3] = -vec3f_dot_product(yaxis, eye);
+    result.m[2][3] = -vec3f_dot_product(zaxis, eye);
     return result;
 }
 

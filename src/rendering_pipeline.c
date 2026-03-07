@@ -37,6 +37,9 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
                 render_triangle.screen_positions[0] = convert_normalized_device_coordinates_to_screen_coordinates(ndc_coords_0, app_context->window_resolution.x, app_context->window_resolution.y);
                 render_triangle.screen_positions[1] = convert_normalized_device_coordinates_to_screen_coordinates(ndc_coords_1, app_context->window_resolution.x, app_context->window_resolution.y);
                 render_triangle.screen_positions[2] = convert_normalized_device_coordinates_to_screen_coordinates(ndc_coords_2, app_context->window_resolution.x, app_context->window_resolution.y);
+                render_triangle.depth_values[0] = clipping_result.vertices[0].z / clipping_result.vertices[0].w; // Perspective-correct depth value
+                render_triangle.depth_values[1] = clipping_result.vertices[c + 1].z / clipping_result.vertices[c + 1].w;
+                render_triangle.depth_values[2] = clipping_result.vertices[c + 2].z / clipping_result.vertices[c + 2].w;
                 render_triangle.color = mesh->triangles[t].color;
                 // Add the new triangle to the render list
                 if (generated_render_list.triangle_count < MAX_RENDERABLE_TRIANGLES) {
