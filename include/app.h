@@ -8,7 +8,8 @@
  * 
  * 57 bytes
  */
-typedef struct {
+typedef struct AppContext {
+    InputActionMap input_action_map; // 8960 bytes
     Vector2i window_resolution; // 8-bytes
     SDL_Window *window; // 8-bytes
     SDL_Renderer *renderer; // 8-bytes
@@ -22,3 +23,4 @@ typedef struct {
 
 int initialize_sdl_components(AppContext *app_context, Vector2i window_resolution, const char *window_title);
 int cleanup_sdl_components(AppContext *app_context);
+void handle_sdl_quit_events(AppContext *app_context);
