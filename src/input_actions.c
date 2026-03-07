@@ -89,7 +89,7 @@ int register_axis_1d_input_action(InputActionMap *input_action_map, const char *
  * @param mouse The current state of the mouse buttons
  * @return true if the binding is active, false otherwise
  */
-static bool is_binding_active(InputBinding *binding, const Uint8 *keyboard, Uint32 mouse) {
+static bool is_binding_active(InputBinding *binding, const Uint8 *keyboard, Uint32 mouse, InputActionMap *input_action_map) {
     switch (binding->type) {
         case INPUT_KEYBOARD:
             return binding->code != SDL_SCANCODE_UNKNOWN && keyboard[binding->code];
@@ -97,6 +97,10 @@ static bool is_binding_active(InputBinding *binding, const Uint8 *keyboard, Uint
             return mouse & SDL_BUTTON(binding->code);
         case INPUT_GAMEPAD_BUTTON:
             return false; // TODO
+        case INPUT_MOUSE_SCROLL_UP:
+            return input_action_map->scroll_up_this_frame;
+        case INPUT_MOUSE_SCROLL_DOWN:
+            return input_action_map->scroll_down_this_frame;
         default:
             return false;
     }
@@ -107,47 +111,51 @@ static bool is_binding_active(InputBinding *binding, const Uint8 *keyboard, Uint
  * @param actions An array of InputAction to update
  * @param count The number of InputAction in the array
  */
-void update_input_actions(InputAction *actions, int count) {
+void update_input_actions(InputActionMap *input_action_map, AppContext *app_context) {
     const Uint8 *keyboard = SDL_GetKeyboardState(NULL);
     Uint32 mouse = SDL_GetMouseState(NULL, NULL);
 
-    for (int i = 0; i < count; i++) {
-        switch (actions[i].type) {
+    input_action_map->scroll_up_this_frame = app_context->scroll_wheel_delta_this_frame > 0;
+    input_action_map->scroll_down_this_frame = app_context->scroll_wheel_delta_this_frame < 0;
+    app_context->scroll_wheel_delta_this_frame = 0.0f;
+
+    for (int i = 0; i < MAX_INPUT_ACTIONS; i++) {
+        switch (input_action_map->input_actions[i].type) {
             case ACTION_TYPE_BUTTON: {
-                actions[i].button.previous_state = actions[i].button.current_state;
-                actions[i].button.current_state = false;
+                input_action_map->input_actions[i].button.previous_state = input_action_map->input_actions[i].button.current_state;
+                input_action_map->input_actions[i].button.current_state = false;
                 for (int j = 0; j < 8; j++) {
-                    if (is_binding_active(&actions[i].button.bindings[j], keyboard, mouse)) {
-                        actions[i].button.current_state = true;
+                    if (is_binding_active(&input_action_map->input_actions[i].button.bindings[j], keyboard, mouse, input_action_map)) {
+                        input_action_map->input_actions[i].button.current_state = true;
                         break;
                     }
                 }
                 break;
             }
             case ACTION_TYPE_AXIS_2D: {
-                actions[i].axis_2d.previously_active = actions[i].axis_2d.currently_active;
+                input_action_map->input_actions[i].axis_2d.previously_active = input_action_map->input_actions[i].axis_2d.currently_active;
                 float x = 0.0f, y = 0.0f;
                 for (int j = 0; j < 4; j++) {
-                    if (is_binding_active(&actions[i].axis_2d.positive_x[j], keyboard, mouse)) x += 1.0f;
-                    if (is_binding_active(&actions[i].axis_2d.negative_x[j], keyboard, mouse)) x -= 1.0f;
-                    if (is_binding_active(&actions[i].axis_2d.positive_y[j], keyboard, mouse)) y += 1.0f;
-                    if (is_binding_active(&actions[i].axis_2d.negative_y[j], keyboard, mouse)) y -= 1.0f;
+                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.positive_x[j], keyboard, mouse, input_action_map)) x += 1.0f;
+                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.negative_x[j], keyboard, mouse, input_action_map)) x -= 1.0f;
+                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.positive_y[j], keyboard, mouse, input_action_map)) y += 1.0f;
+                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.negative_y[j], keyboard, mouse, input_action_map)) y -= 1.0f;
                 }
                 float len = sqrtf(x * x + y * y);
                 if (len > 0.0f) { x /= len; y /= len; }
-                actions[i].axis_2d.value = (Vector2f){x, y};
-                actions[i].axis_2d.currently_active = (x != 0.0f || y != 0.0f);
+                input_action_map->input_actions[i].axis_2d.value = (Vector2f){x, y};
+                input_action_map->input_actions[i].axis_2d.currently_active = (x != 0.0f || y != 0.0f);
                 break;
             }
             case ACTION_TYPE_AXIS_1D: {
-                actions[i].axis_1d.previously_active = actions[i].axis_1d.currently_active;
+                input_action_map->input_actions[i].axis_1d.previously_active = input_action_map->input_actions[i].axis_1d.currently_active;
                 float val = 0.0f;
                 for (int j = 0; j < 4; j++) {
-                    if (is_binding_active(&actions[i].axis_1d.positive[j], keyboard, mouse)) val += 1.0f;
-                    if (is_binding_active(&actions[i].axis_1d.negative[j], keyboard, mouse)) val -= 1.0f;
+                    if (is_binding_active(&input_action_map->input_actions[i].axis_1d.positive[j], keyboard, mouse, input_action_map)) val += 1.0f;
+                    if (is_binding_active(&input_action_map->input_actions[i].axis_1d.negative[j], keyboard, mouse, input_action_map)) val -= 1.0f;
                 }
-                actions[i].axis_1d.value = fminf(1.0f, fmaxf(-1.0f, val));
-                actions[i].axis_1d.currently_active = (val != 0.0f);
+                input_action_map->input_actions[i].axis_1d.value = fminf(1.0f, fmaxf(-1.0f, val));
+                input_action_map->input_actions[i].axis_1d.currently_active = (val != 0.0f);
                 break;
             }
             default: break;

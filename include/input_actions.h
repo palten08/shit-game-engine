@@ -7,7 +7,7 @@
 int register_button_input_action(InputActionMap *input_action_map, const char *name, InputBinding *input_action_bindings, int binding_count);
 int register_axis_2d_input_action(InputActionMap *input_action_map, const char *name, AxisBindings positive_x_bindings, AxisBindings negative_x_bindings, AxisBindings positive_y_bindings, AxisBindings negative_y_bindings);
 int register_axis_1d_input_action(InputActionMap *input_action_map, const char *name, AxisBindings positive_bindings, AxisBindings negative_bindings);
-void update_input_actions(InputAction *actions, int count);
+void update_input_actions(InputActionMap *input_action_map, AppContext *app_context);
 
 bool is_input_action_held(InputAction *input_action);
 bool is_input_action_pressed(InputAction *input_action);

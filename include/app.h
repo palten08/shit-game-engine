@@ -18,9 +18,10 @@ typedef struct AppContext {
     DepthBuffer *depth_buffer; // 8 bytes
     double time_accumulator; // 8-bytes
     double delta_time; // 8-bytes
+    float scroll_wheel_delta_this_frame; // 4-bytes
     bool application_running; // 1-byte
 } AppContext;
 
 int initialize_sdl_components(AppContext *app_context, Vector2i window_resolution, const char *window_title);
 int cleanup_sdl_components(AppContext *app_context);
-void handle_sdl_quit_events(AppContext *app_context);
+void handle_sdl_events(AppContext *app_context);
