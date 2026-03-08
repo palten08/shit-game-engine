@@ -1,6 +1,7 @@
 #include "../include/scene.h"
 #include "../include/types.h"
 #include "../include/matrix_operations.h"
+#include "../include/vector_operations.h"
 #include "../include/parson.h"
 #include "../include/ecs.h"
 
@@ -44,6 +45,7 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
 
                 loaded_mesh.triangle_count = triangle_count;
                 loaded_mesh.triangles = malloc(triangle_count * sizeof(Triangle3D));
+                loaded_mesh.face_normals = malloc(triangle_count * sizeof(Vector3f));
                 for (int j = 0; j < triangle_count; j++) {
                     int vertex_index_0 = (int)json_array_get_number(indices_array, j * 3);
                     if (vertex_index_0 < 0 || vertex_index_0 >= vertex_count) {
@@ -77,6 +79,13 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
                         loaded_mesh.triangles[j].vertices[2].color = random_color;
                         loaded_mesh.triangles[j].color = random_color;
                     }
+                    Vector3f vertex_0 = loaded_mesh.triangles[j].vertices[0].position;
+                    Vector3f vertex_1 = loaded_mesh.triangles[j].vertices[1].position;
+                    Vector3f vertex_2 = loaded_mesh.triangles[j].vertices[2].position;
+                    Vector3f edge_1 = vec3f_subtract(vertex_1, vertex_0);
+                    Vector3f edge_2 = vec3f_subtract(vertex_2, vertex_0);
+                    Vector3f face_normal = vec3f_normalize(vec3f_cross_product(edge_1, edge_2));
+                    loaded_mesh.face_normals[j] = face_normal;
                 }
                 scene->asset_library.meshes[i] = loaded_mesh;
             }

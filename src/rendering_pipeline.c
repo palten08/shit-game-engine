@@ -2,6 +2,7 @@
 
 #include "../include/types.h"
 #include "../include/matrix_operations.h"
+#include "../include/vector_operations.h"
 #include "../include/virtual_camera.h"
 #include "../include/clipping.h"
 #include "../include/coordinates.h"
@@ -10,6 +11,7 @@
 
 RenderList generate_render_list(Scene *scene, AppContext *app_context) {
     RenderList generated_render_list = {0};
+    Vector3f light_direction = vec3f_normalize((Vector3f){-1.0f, -1.0f, -1.0f});
     for (int i = 0; i < scene->registered_entity_count; i++) {
         Entity entity = i;
         TransformComponent *transform = get_component(scene, TRANSFORM, entity);
@@ -26,6 +28,38 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
                 clip_space_vertices[v] = mat4_multiply_vec4(scene->virtual_camera.perspective_projection_matrix, view_space_vertex);
             }
 
+            // Transform face normals to world space
+            // Only use the upper-left 3x3 portion of the model matrix for normal transformation
+            Vector3f normal = mesh_data->face_normals[t];
+            Vector3f world_space_normal = {
+                transform->model_matrix.m[0][0] * normal.x + transform->model_matrix.m[0][1] * normal.y + transform->model_matrix.m[0][2] * normal.z,
+                transform->model_matrix.m[1][0] * normal.x + transform->model_matrix.m[1][1] * normal.y + transform->model_matrix.m[1][2] * normal.z,
+                transform->model_matrix.m[2][0] * normal.x + transform->model_matrix.m[2][1] * normal.y + transform->model_matrix.m[2][2] * normal.z
+            };
+            // Normalize the world space normal
+            float length = sqrtf(world_space_normal.x * world_space_normal.x + world_space_normal.y * world_space_normal.y + world_space_normal.z * world_space_normal.z);
+            if (length > 0.0f) {
+                world_space_normal.x /= length;
+                world_space_normal.y /= length;
+                world_space_normal.z /= length;
+            }
+            // Brightness computation
+            float ambient = 0.02f;
+            float brightness = ambient + (1.0f - ambient) * fmaxf(0.0f, vec3f_dot_product(world_space_normal, vec3f_negate(light_direction)));
+            if (brightness < 0.0f) {
+                brightness = 0.0f; // Clamp brightness to zero to avoid negative values
+            }
+            // Apply brightness to the triangle color
+            uint32_t color = mesh_data->triangles[t].color;
+            uint8_t r = (color >> 16) & 0xFF;
+            uint8_t g = (color >> 8) & 0xFF;
+            uint8_t b = color & 0xFF;
+            r = (uint8_t)(r * brightness);
+            g = (uint8_t)(g * brightness);
+            b = (uint8_t)(b * brightness);
+
+            uint32_t shaded_color = 0xFF000000 | (r << 16) | (g << 8) | b;
+
             // Clip triangles here
             ClippingResult clipping_result = clip_triangle(clip_space_vertices);
 
@@ -41,7 +75,7 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
                 render_triangle.depth_values[0] = clipping_result.vertices[0].z / clipping_result.vertices[0].w; // Perspective-correct depth value
                 render_triangle.depth_values[1] = clipping_result.vertices[c + 1].z / clipping_result.vertices[c + 1].w;
                 render_triangle.depth_values[2] = clipping_result.vertices[c + 2].z / clipping_result.vertices[c + 2].w;
-                render_triangle.color = mesh_data->triangles[t].color;
+                render_triangle.color = shaded_color;
                 // Add the new triangle to the render list
                 if (generated_render_list.triangle_count < MAX_RENDERABLE_TRIANGLES) {
                     generated_render_list.triangles[generated_render_list.triangle_count++] = render_triangle;

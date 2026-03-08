@@ -45,9 +45,9 @@ typedef struct {
 } Triangle3D;
 
 /**
- * @brief A structure representing a quad in 3D space
+ * @brief A structure representing a 3D mesh
  * 
- * 16 bytes
+ * 24 bytes
  */
 typedef struct {
     Triangle3D *triangles; // 8 bytes

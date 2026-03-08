@@ -149,6 +149,14 @@ Vector3f vec3f_cross_product(Vector3f a, Vector3f b) {
     return result;
 }
 
+Vector3f vec3f_negate(Vector3f a) {
+    Vector3f result;
+    result.x = -a.x;
+    result.y = -a.y;
+    result.z = -a.z;
+    return result;
+}
+
 /** Converts a 3D vector to a 4D vector by adding a w component. */
 /** Arguments:
  *  - (Vector3f) a: The 3D vector.
