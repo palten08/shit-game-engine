@@ -17,10 +17,11 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
         if (!transform || !mesh) {
             continue; // Skip entities that don't have both a transform and a mesh component
         }
-        for (int t = 0; t < mesh->triangle_count; t++) {
+        Mesh3D *mesh_data = &scene->asset_library.meshes[mesh->mesh_id];
+        for (int t = 0; t < mesh_data->triangle_count; t++) {
             Vector4f clip_space_vertices[3];
             for (int v = 0; v < 3; v++) {
-                Vector4f world_space_vertex = mat4_multiply_vec4(transform->model_matrix, (Vector4f){mesh->triangles[t].vertices[v].position.x, mesh->triangles[t].vertices[v].position.y, mesh->triangles[t].vertices[v].position.z, 1.0f});
+                Vector4f world_space_vertex = mat4_multiply_vec4(transform->model_matrix, (Vector4f){mesh_data->triangles[t].vertices[v].position.x, mesh_data->triangles[t].vertices[v].position.y, mesh_data->triangles[t].vertices[v].position.z, 1.0f});
                 Vector4f view_space_vertex = mat4_multiply_vec4(scene->virtual_camera.view_matrix, world_space_vertex);
                 clip_space_vertices[v] = mat4_multiply_vec4(scene->virtual_camera.perspective_projection_matrix, view_space_vertex);
             }
@@ -40,7 +41,7 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
                 render_triangle.depth_values[0] = clipping_result.vertices[0].z / clipping_result.vertices[0].w; // Perspective-correct depth value
                 render_triangle.depth_values[1] = clipping_result.vertices[c + 1].z / clipping_result.vertices[c + 1].w;
                 render_triangle.depth_values[2] = clipping_result.vertices[c + 2].z / clipping_result.vertices[c + 2].w;
-                render_triangle.color = mesh->triangles[t].color;
+                render_triangle.color = mesh_data->triangles[t].color;
                 // Add the new triangle to the render list
                 if (generated_render_list.triangle_count < MAX_RENDERABLE_TRIANGLES) {
                     generated_render_list.triangles[generated_render_list.triangle_count++] = render_triangle;

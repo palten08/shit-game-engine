@@ -52,8 +52,7 @@ typedef struct {
  * 12 bytes
  */
 typedef struct {
-    Triangle3D *triangles; // 8 bytes
-    int triangle_count; // 4 bytes
+    int mesh_id; // 4 bytes
 } MeshComponent;
 
 /**
