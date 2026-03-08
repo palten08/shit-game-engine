@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 #include "types/vector_types.h"
-#include "types/vertex_types.h"
 #include "types/matrix_types.h"
 #include "types/geometry_types.h"
 #include "types/render_types.h"

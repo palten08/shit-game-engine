@@ -13,3 +13,5 @@ float vec3f_get_length(Vector3f a);
 Vector3f vec3f_normalize(Vector3f a);
 float vec3f_dot_product(Vector3f a, Vector3f b);
 Vector3f vec3f_cross_product(Vector3f a, Vector3f b);
+Vector3f vec3f_negate(Vector3f a);
+Vector4f vec3f_to_vec4f(Vector3f a, float w);

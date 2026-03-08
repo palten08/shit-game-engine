@@ -4,7 +4,6 @@
 
 #include "vector_types.h"
 #include "matrix_types.h"
-#include "vertex_types.h"
 
 /** @defgroup Geometry 3D Geometry Structures
  *  @{
@@ -46,14 +45,15 @@ typedef struct {
 } Triangle3D;
 
 /**
- * @brief A structure representing a quad in 3D space
+ * @brief A structure representing a 3D mesh
  * 
- * 16 bytes
+ * 24 bytes
  */
 typedef struct {
     Triangle3D *triangles; // 8 bytes
-    uint32_t triangle_count; // 4 bytes
+    Vector3f *face_normals; // 8 bytes
+    int triangle_count; // 4 bytes
     uint32_t color; // 4 bytes
-} Quad3D;
+} Mesh3D;
 
  /** @} */ // End of Geometry group

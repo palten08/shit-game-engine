@@ -102,54 +102,9 @@ void parse_transform_component(Scene *scene, Entity entity, int component_id, JS
 }
 
 void parse_mesh_component(Scene *scene, Entity entity, int component_id, JSON_Object *json) {
-    printf("Parsing mesh component for entity %d\n", entity);
     MeshComponent *mesh_component = get_component(scene, component_id, entity);
     if (!mesh_component) {
         return; // Failed to get the component
     }
-    JSON_Array *vertices_array = json_object_get_array(json, "vertices");
-    JSON_Array *indices_array = json_object_get_array(json, "indices");
-    if (!vertices_array || !indices_array) {
-        return; // Invalid mesh data
-    }
-    
-    int vertex_count = json_array_get_count(vertices_array);
-    int triangle_count = json_array_get_count(indices_array) / 3;
-
-    mesh_component->triangle_count = triangle_count;
-    mesh_component->triangles = malloc(triangle_count * sizeof(Triangle3D));
-    for (int j = 0; j < triangle_count; j++) {
-        int vertex_index_0 = (int)json_array_get_number(indices_array, j * 3);
-        if (vertex_index_0 < 0 || vertex_index_0 >= vertex_count) {
-            continue; // Skip invalid vertex index
-        }
-        int vertex_index_1 = (int)json_array_get_number(indices_array, j * 3 + 1);
-        if (vertex_index_1 < 0 || vertex_index_1 >= vertex_count) {
-            continue; // Skip invalid vertex index
-        }
-        int vertex_index_2 = (int)json_array_get_number(indices_array, j * 3 + 2);
-        if (vertex_index_2 < 0 || vertex_index_2 >= vertex_count) {
-            continue; // Skip invalid vertex index
-        }
-        JSON_Object *vertex_json_0 = json_array_get_object(vertices_array, vertex_index_0);
-        JSON_Object *vertex_json_1 = json_array_get_object(vertices_array, vertex_index_1);
-        JSON_Object *vertex_json_2 = json_array_get_object(vertices_array, vertex_index_2);
-        if (vertex_json_0 && vertex_json_1 && vertex_json_2) {
-            mesh_component->triangles[j].vertices[0].position.x = json_object_get_number(vertex_json_0, "x");
-            mesh_component->triangles[j].vertices[0].position.y = json_object_get_number(vertex_json_0, "y");
-            mesh_component->triangles[j].vertices[0].position.z = json_object_get_number(vertex_json_0, "z");
-            mesh_component->triangles[j].vertices[1].position.x = json_object_get_number(vertex_json_1, "x");
-            mesh_component->triangles[j].vertices[1].position.y = json_object_get_number(vertex_json_1, "y");
-            mesh_component->triangles[j].vertices[1].position.z = json_object_get_number(vertex_json_1, "z");
-            mesh_component->triangles[j].vertices[2].position.x = json_object_get_number(vertex_json_2, "x");
-            mesh_component->triangles[j].vertices[2].position.y = json_object_get_number(vertex_json_2, "y");
-            mesh_component->triangles[j].vertices[2].position.z = json_object_get_number(vertex_json_2, "z");
-            // Random color
-            uint32_t random_color = (rand() % 0xFFFFFF) | 0xFF000000; // Random color with full alpha
-            mesh_component->triangles[j].vertices[0].color = random_color;
-            mesh_component->triangles[j].vertices[1].color = random_color;
-            mesh_component->triangles[j].vertices[2].color = random_color;
-            mesh_component->triangles[j].color = random_color;
-        }
-    }
+    mesh_component->mesh_id = (int)json_object_get_number(json, "mesh_id");
 }
