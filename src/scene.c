@@ -27,6 +27,26 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
         return scene; // Don't support not having an asset library
     }
 
+    JSON_Object *directional_light_json = json_object_get_object(root_object, "directional_light");
+    if (directional_light_json) {
+        JSON_Object *direction_json = json_object_get_object(directional_light_json, "direction");
+        if (!direction_json) {
+            json_value_free(root_value);
+            return scene; // Don't support not having a directional light direction
+        }
+        scene->directional_light.direction = vec3f_normalize((Vector3f){json_object_get_number(direction_json, "x"), json_object_get_number(direction_json, "y"), json_object_get_number(direction_json, "z")});
+        JSON_Object *color_json = json_object_get_object(directional_light_json, "color");
+        if (color_json) {
+            uint8_t r = (uint8_t)(json_object_get_number(color_json, "r") * 255.0f);
+            uint8_t g = (uint8_t)(json_object_get_number(color_json, "g") * 255.0f);
+            uint8_t b = (uint8_t)(json_object_get_number(color_json, "b") * 255.0f);
+            uint32_t packed_color = 0xFF000000 | (r << 16) | (g << 8) | b;
+            scene->directional_light.color = packed_color;
+        }
+        scene->directional_light.intensity = json_object_get_number(directional_light_json, "intensity");
+        scene->directional_light.ambient_intensity = json_object_get_number(directional_light_json, "ambient_intensity");
+    }
+
     JSON_Array *meshes_array = json_object_get_array(asset_library_json, "meshes");
     if (meshes_array) {
         scene->asset_library.mesh_count = json_array_get_count(meshes_array);

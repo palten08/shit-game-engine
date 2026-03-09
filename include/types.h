@@ -8,6 +8,7 @@
 #include "types/render_types.h"
 #include "types/ecs_types.h"
 #include "types/input_actions_types.h"
+#include "types/lighting_types.h"
 
 #pragma once
 
