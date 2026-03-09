@@ -83,6 +83,10 @@ Mesh3D load_obj(const char *file_name) {
     }
     for (int t = 0; t < loaded_mesh.triangle_count; t++) {
         for (int i = 0; i < 3; i++) {
+            float distance = vec3f_get_length(loaded_vertices[loaded_triangles[t].vertex_indices[i] - 1].position);
+            if (distance > loaded_mesh.bounding_sphere_radius) {
+                loaded_mesh.bounding_sphere_radius = distance;
+            }
             int vertex_index = loaded_triangles[t].vertex_indices[i] - 1;
             int normal_index = loaded_triangles[t].vertex_normal_indices[i] - 1;
             if (vertex_index >= 0 && vertex_index < loaded_mesh.vertex_count) {

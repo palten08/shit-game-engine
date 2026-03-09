@@ -2,8 +2,6 @@
 
 #include "vector_types.h"
 
-#define MAX_RENDERABLE_TRIANGLES 32768
-
 /** @defgroup Render Render Structures
  *  @{
  */
@@ -25,7 +23,7 @@ typedef struct {
  * 28736 bytes
  */
 typedef struct {
-    RenderTriangle triangles[MAX_RENDERABLE_TRIANGLES]; // 28672 bytes
+    RenderTriangle *triangles;
     int triangle_count; // 4 bytes
 } RenderList;
 

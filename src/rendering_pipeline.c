@@ -1,5 +1,4 @@
 #include "../include/rendering_pipeline.h"
-
 #include "../include/types.h"
 #include "../include/matrix_operations.h"
 #include "../include/vector_operations.h"
@@ -9,13 +8,44 @@
 #include "../include/app.h"
 #include "../include/ecs.h"
 
+
+static bool is_sphere_in_frustum(Vector4f center_view, float radius, float fov, float aspect, float near, float far) {
+    float z = -center_view.z; // positive distance in front of camera
+
+    // Behind camera or beyond far plane
+    if (z + radius < near) return false;
+    if (z - radius > far) return false;
+
+    // Half extents at this depth
+    float half_height = z * tanf(fov * 0.5f);
+    float half_width = half_height * aspect;
+
+    // Left/right
+    if (center_view.x - radius > half_width) return false;
+    if (center_view.x + radius < -half_width) return false;
+
+    // Top/bottom
+    if (center_view.y - radius > half_height) return false;
+    if (center_view.y + radius < -half_height) return false;
+
+    return true;
+}
+
 RenderList generate_render_list(Scene *scene, AppContext *app_context) {
     RenderList generated_render_list = {0};
+    int initial_triangle_capacity = 4096;
+    generated_render_list.triangles = malloc(initial_triangle_capacity * sizeof(RenderTriangle));
+    if (!generated_render_list.triangles) {
+        fprintf(stderr, "Failed to allocate memory for render triangles\n");
+        exit(EXIT_FAILURE);
+    }
     Vector3f light_direction = scene->directional_light.direction;
     uint8_t light_r = (scene->directional_light.color >> 16) & 0xFF;
     uint8_t light_g = (scene->directional_light.color >> 8) & 0xFF;
     uint8_t light_b = scene->directional_light.color & 0xFF;
     
+    int culled_entity_count = 0;
+
     for (int i = 0; i < scene->registered_entity_count; i++) {
         Entity entity = i;
         TransformComponent *transform = get_component(scene, TRANSFORM, entity);
@@ -23,6 +53,16 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
         if (!transform || !mesh) {
             continue; // Skip entities that don't have both a transform and a mesh component
         }
+
+        // Check if the entity's bounding sphere is within the camera's view frustum before processing its triangles
+        Vector4f center_world = mat4_multiply_vec4(transform->model_matrix, (Vector4f){0, 0, 0, 1});
+        Vector4f center_view = mat4_multiply_vec4(scene->virtual_camera.view_matrix, center_world);
+        float radius = scene->asset_library.meshes[mesh->mesh_id].bounding_sphere_radius;
+        if (!is_sphere_in_frustum(center_view, radius, scene->virtual_camera.field_of_view, scene->virtual_camera.aspect_ratio, scene->virtual_camera.near_plane, scene->virtual_camera.far_plane)) {
+            culled_entity_count++;
+            continue; // Skip this entity since it's not within the camera's view frustum
+        }
+
         Mesh3D *mesh_data = &scene->asset_library.meshes[mesh->mesh_id];
         for (int t = 0; t < mesh_data->triangle_count; t++) {
             Vector4f clip_space_vertices[3];
@@ -77,9 +117,16 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
                 render_triangle.depth_values[2] = clipping_result.vertices[c + 2].z / clipping_result.vertices[c + 2].w;
                 render_triangle.color = shaded_color;
                 // Add the new triangle to the render list
-                if (generated_render_list.triangle_count < MAX_RENDERABLE_TRIANGLES) {
-                    generated_render_list.triangles[generated_render_list.triangle_count++] = render_triangle;
+                if (generated_render_list.triangle_count >= initial_triangle_capacity) {
+                    initial_triangle_capacity *= 2;
+                    generated_render_list.triangles = realloc(generated_render_list.triangles, initial_triangle_capacity * sizeof(RenderTriangle));
+                    if (!generated_render_list.triangles) {
+                        fprintf(stderr, "Failed to reallocate memory for render triangles\n");
+                        exit(EXIT_FAILURE);
+                    }
                 }
+                generated_render_list.triangles[generated_render_list.triangle_count++] = render_triangle;
+
             }
         }
     }

@@ -59,7 +59,6 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
                 if (file_path) {
                     Mesh3D loaded_mesh = load_obj(file_path);
                     if (loaded_mesh.triangle_count > 0) {
-                        printf("Loaded mesh '%s' with %d triangles and %d vertices from file '%s'\n", loaded_mesh.name, loaded_mesh.triangle_count, loaded_mesh.vertex_count, file_path);
                         scene->asset_library.meshes[i] = loaded_mesh;
                     }
                 }

@@ -55,6 +55,7 @@ typedef struct {
     Triangle3D *triangles; // 8 bytes
     Vector3f *face_normals; // 8 bytes
     Vector3f *vertex_normals; // 8 bytes
+    float bounding_sphere_radius; // 4 bytes
     int triangle_count; // 4 bytes
     int vertex_count; // 4 bytes
     int face_normal_count; // 4 bytes
