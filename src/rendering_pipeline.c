@@ -11,7 +11,11 @@
 
 RenderList generate_render_list(Scene *scene, AppContext *app_context) {
     RenderList generated_render_list = {0};
-    Vector3f light_direction = vec3f_normalize((Vector3f){-1.0f, -1.0f, -1.0f});
+    Vector3f light_direction = scene->directional_light.direction;
+    uint8_t light_r = (scene->directional_light.color >> 16) & 0xFF;
+    uint8_t light_g = (scene->directional_light.color >> 8) & 0xFF;
+    uint8_t light_b = scene->directional_light.color & 0xFF;
+    
     for (int i = 0; i < scene->registered_entity_count; i++) {
         Entity entity = i;
         TransformComponent *transform = get_component(scene, TRANSFORM, entity);
@@ -44,19 +48,15 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
                 world_space_normal.z /= length;
             }
             // Brightness computation
-            float ambient = 0.02f;
-            float brightness = ambient + (1.0f - ambient) * fmaxf(0.0f, vec3f_dot_product(world_space_normal, vec3f_negate(light_direction)));
-            if (brightness < 0.0f) {
-                brightness = 0.0f; // Clamp brightness to zero to avoid negative values
-            }
+            float diffuse = fmaxf(0.0f, vec3f_dot_product(world_space_normal, vec3f_negate(light_direction)));
+            float brightness = scene->directional_light.ambient_intensity + (1.0f - scene->directional_light.ambient_intensity) * diffuse * scene->directional_light.intensity;
+            brightness = fminf(1.0f, brightness);
+
             // Apply brightness to the triangle color
             uint32_t color = mesh_data->triangles[t].color;
-            uint8_t r = (color >> 16) & 0xFF;
-            uint8_t g = (color >> 8) & 0xFF;
-            uint8_t b = color & 0xFF;
-            r = (uint8_t)(r * brightness);
-            g = (uint8_t)(g * brightness);
-            b = (uint8_t)(b * brightness);
+            uint8_t r = (uint8_t)(((color >> 16) & 0xFF) * brightness * (light_r / 255.0f));
+            uint8_t g = (uint8_t)(((color >> 8) & 0xFF) * brightness * (light_g / 255.0f));
+            uint8_t b = (uint8_t)((color & 0xFF) * brightness * (light_b / 255.0f));
 
             uint32_t shaded_color = 0xFF000000 | (r << 16) | (g << 8) | b;
 
