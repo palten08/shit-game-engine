@@ -4,6 +4,7 @@
 #include "../include/vector_operations.h"
 #include "../include/parson.h"
 #include "../include/ecs.h"
+#include "../include/obj_loader.h"
 
 Scene initialize_scene() {
     Scene scene = {0};
@@ -54,60 +55,14 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
         for (uint32_t i = 0; i < scene->asset_library.mesh_count; i++) {
             JSON_Object *mesh_json = json_array_get_object(meshes_array, i);
             if (mesh_json) {
-                JSON_Array *vertices_array = json_object_get_array(mesh_json, "vertices");
-                JSON_Array *indices_array = json_object_get_array(mesh_json, "indices");
-                if (!vertices_array || !indices_array) {
-                    return scene; // Invalid mesh data
+                const char *file_path = json_object_get_string(mesh_json, "file_path");
+                if (file_path) {
+                    Mesh3D loaded_mesh = load_obj(file_path);
+                    if (loaded_mesh.triangle_count > 0) {
+                        printf("Loaded mesh '%s' with %d triangles and %d vertices from file '%s'\n", loaded_mesh.name, loaded_mesh.triangle_count, loaded_mesh.vertex_count, file_path);
+                        scene->asset_library.meshes[i] = loaded_mesh;
+                    }
                 }
-                Mesh3D loaded_mesh = {0};    
-                int vertex_count = json_array_get_count(vertices_array);
-                int triangle_count = json_array_get_count(indices_array) / 3;
-
-                loaded_mesh.triangle_count = triangle_count;
-                loaded_mesh.triangles = malloc(triangle_count * sizeof(Triangle3D));
-                loaded_mesh.face_normals = malloc(triangle_count * sizeof(Vector3f));
-                for (int j = 0; j < triangle_count; j++) {
-                    int vertex_index_0 = (int)json_array_get_number(indices_array, j * 3);
-                    if (vertex_index_0 < 0 || vertex_index_0 >= vertex_count) {
-                        continue; // Skip invalid vertex index
-                    }
-                    int vertex_index_1 = (int)json_array_get_number(indices_array, j * 3 + 1);
-                    if (vertex_index_1 < 0 || vertex_index_1 >= vertex_count) {
-                        continue; // Skip invalid vertex index
-                    }
-                    int vertex_index_2 = (int)json_array_get_number(indices_array, j * 3 + 2);
-                    if (vertex_index_2 < 0 || vertex_index_2 >= vertex_count) {
-                        continue; // Skip invalid vertex index
-                    }
-                    JSON_Object *vertex_json_0 = json_array_get_object(vertices_array, vertex_index_0);
-                    JSON_Object *vertex_json_1 = json_array_get_object(vertices_array, vertex_index_1);
-                    JSON_Object *vertex_json_2 = json_array_get_object(vertices_array, vertex_index_2);
-                    if (vertex_json_0 && vertex_json_1 && vertex_json_2) {
-                        loaded_mesh.triangles[j].vertices[0].position.x = json_object_get_number(vertex_json_0, "x");
-                        loaded_mesh.triangles[j].vertices[0].position.y = json_object_get_number(vertex_json_0, "y");
-                        loaded_mesh.triangles[j].vertices[0].position.z = json_object_get_number(vertex_json_0, "z");
-                        loaded_mesh.triangles[j].vertices[1].position.x = json_object_get_number(vertex_json_1, "x");
-                        loaded_mesh.triangles[j].vertices[1].position.y = json_object_get_number(vertex_json_1, "y");
-                        loaded_mesh.triangles[j].vertices[1].position.z = json_object_get_number(vertex_json_1, "z");
-                        loaded_mesh.triangles[j].vertices[2].position.x = json_object_get_number(vertex_json_2, "x");
-                        loaded_mesh.triangles[j].vertices[2].position.y = json_object_get_number(vertex_json_2, "y");
-                        loaded_mesh.triangles[j].vertices[2].position.z = json_object_get_number(vertex_json_2, "z");
-                        // Random color
-                        uint32_t random_color = (rand() % 0xFFFFFF) | 0xFF000000; // Random color with full alpha
-                        loaded_mesh.triangles[j].vertices[0].color = random_color;
-                        loaded_mesh.triangles[j].vertices[1].color = random_color;
-                        loaded_mesh.triangles[j].vertices[2].color = random_color;
-                        loaded_mesh.triangles[j].color = random_color;
-                    }
-                    Vector3f vertex_0 = loaded_mesh.triangles[j].vertices[0].position;
-                    Vector3f vertex_1 = loaded_mesh.triangles[j].vertices[1].position;
-                    Vector3f vertex_2 = loaded_mesh.triangles[j].vertices[2].position;
-                    Vector3f edge_1 = vec3f_subtract(vertex_1, vertex_0);
-                    Vector3f edge_2 = vec3f_subtract(vertex_2, vertex_0);
-                    Vector3f face_normal = vec3f_normalize(vec3f_cross_product(edge_1, edge_2));
-                    loaded_mesh.face_normals[j] = face_normal;
-                }
-                scene->asset_library.meshes[i] = loaded_mesh;
             }
         }
     }
