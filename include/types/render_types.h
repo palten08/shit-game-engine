@@ -2,7 +2,7 @@
 
 #include "vector_types.h"
 
-#define MAX_RENDERABLE_TRIANGLES 16384
+#define MAX_RENDERABLE_TRIANGLES 32768
 
 /** @defgroup Render Render Structures
  *  @{

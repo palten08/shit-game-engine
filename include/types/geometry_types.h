@@ -39,8 +39,9 @@ typedef struct {
  */
 typedef struct {
     Point3D vertices[3]; // 84 bytes
+    int vertex_normal_indices[3]; // 12 bytes
     int vertex_indices[3]; // 12 bytes
-    Vector3f normal; // 12 bytes
+    Vector3f face_normal; // 12 bytes
     uint32_t color; // 4 bytes
 } Triangle3D;
 
@@ -50,9 +51,14 @@ typedef struct {
  * 24 bytes
  */
 typedef struct {
+    char name[64]; // 64 bytes
     Triangle3D *triangles; // 8 bytes
     Vector3f *face_normals; // 8 bytes
+    Vector3f *vertex_normals; // 8 bytes
     int triangle_count; // 4 bytes
+    int vertex_count; // 4 bytes
+    int face_normal_count; // 4 bytes
+    int vertex_normal_count; // 4 bytes
     uint32_t color; // 4 bytes
 } Mesh3D;
 
