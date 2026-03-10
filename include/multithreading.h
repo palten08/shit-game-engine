@@ -12,16 +12,6 @@ typedef struct {
     void *arg;
 } Job;
 
-typedef struct {
-    Scene *scene; // 8 bytes
-    AppContext *app_context; // 8 bytes
-    RenderTriangle *render_triangles; // 8 bytes
-    int entity_start; // 4 bytes
-    int entity_end; // 4 bytes
-    int triangle_count; // 4 bytes
-    int triangle_capacity; // 4 bytes
-} RenderingPipelineJob;
-
 typedef struct ThreadPool {
     pthread_cond_t wake_condition;   // 48 bytes
     pthread_cond_t sleep_condition;  // 48 bytes

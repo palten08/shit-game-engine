@@ -9,7 +9,7 @@
  /**
   * @brief A structure representing a renderable triangle
   * 
-  * 28 bytes
+  * 40 bytes
   */
 typedef struct {
     Vector2i screen_positions[3]; // 24 bytes
@@ -20,10 +20,10 @@ typedef struct {
 /**
  * @brief A structure representing a list of renderable triangles
  * 
- * 28736 bytes
+ * 16 bytes
  */
 typedef struct {
-    RenderTriangle *triangles;
+    RenderTriangle *triangles; // 8 bytes
     int triangle_count; // 4 bytes
 } RenderList;
 

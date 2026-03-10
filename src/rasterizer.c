@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <assert.h>
 
 #include "../include/rasterizer.h"
 #include "../include/types.h"
@@ -150,7 +151,7 @@ float edge_function(Vector2f a, Vector2f b, Vector2f c) {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
-void fill_triangle(RenderTriangle *triangle, AppContext *app_context) {
+void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x, int tile_y, int tile_width, int tile_height) {
     // Triangle filling with barycentric coordinates
 
 
@@ -164,10 +165,10 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context) {
     }
 
     // Compute the bounding box of the triangle
-    int min_x = CLAMP(MIN(MIN(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), 0, app_context->window_resolution.x - 1);
-    int max_x = CLAMP(MAX(MAX(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), 0, app_context->window_resolution.x - 1);
-    int min_y = CLAMP(MIN(MIN(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), 0, app_context->window_resolution.y - 1);
-    int max_y = CLAMP(MAX(MAX(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), 0, app_context->window_resolution.y - 1);
+    int min_x = CLAMP(MIN(MIN(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), tile_x, tile_x + tile_width - 1);
+    int max_x = CLAMP(MAX(MAX(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), tile_x, tile_x + tile_width - 1);
+    int min_y = CLAMP(MIN(MIN(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), tile_y, tile_y + tile_height - 1);
+    int max_y = CLAMP(MAX(MAX(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), tile_y, tile_y + tile_height - 1);
 
     // Step deltas
     float w0_step_x = vertex1.y - vertex2.y;
@@ -193,6 +194,8 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context) {
                 float bary2 = w2 / triangle_area;
                 float depth = bary0 * triangle->depth_values[0] + bary1 * triangle->depth_values[1] + bary2 * triangle->depth_values[2]; // Interpolate depth using barycentric coordinates
                 int index = y * app_context->window_resolution.x + x;
+                assert(x >= tile_x && x < tile_x + tile_width);
+                assert(y >= tile_y && y < tile_y + tile_height);
                 if (depth < app_context->depth_buffer->depth_values[index]) { // Depth test
                     app_context->depth_buffer->depth_values[index] = depth; // Update depth buffer
                     draw_pixel_at_coordinates(app_context, x, y, triangle->color);
@@ -208,21 +211,13 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context) {
     }
 }
 
-/**
- * @brief Iterates over the render list and draws all the triangles contained within it.
- * @param app_context A pointer to the application context.
- * @param render_list A pointer to the render list to be rendered.
- * @return 0 on success.
- */
-int rasterize_render_list(AppContext *app_context, RenderList *render_list) {
-    for (int i = 0; i < render_list->triangle_count; i++) {
-        RenderTriangle *triangle = &render_list->triangles[i];
-        //draw_line_between_coordinates(app_context, triangle->screen_positions[0].x, triangle->screen_positions[0].y, triangle->screen_positions[1].x, triangle->screen_positions[1].y, triangle->color);
-        //draw_line_between_coordinates(app_context, triangle->screen_positions[1].x, triangle->screen_positions[1].y, triangle->screen_positions[2].x, triangle->screen_positions[2].y, triangle->color);
-        //draw_line_between_coordinates(app_context, triangle->screen_positions[2].x, triangle->screen_positions[2].y, triangle->screen_positions[0].x, triangle->screen_positions[0].y, triangle->color);
-        fill_triangle(triangle, app_context);
+void rasterizer_worker(void *arg) {
+    RasterizerJob *job = (RasterizerJob*)arg;
+    for (int t = 0; t < job->triangle_count; t++) {
+        RenderTriangle *triangle = job->render_triangles[t];
+        fill_triangle(triangle, job->app_context, job->tile_x, job->tile_y, job->tile_width, job->tile_height);
     }
-    return 0;
+    return;
 }
 
 int render(AppContext *app_context, RenderList *render_list) {
@@ -233,11 +228,96 @@ int render(AppContext *app_context, RenderList *render_list) {
     }
 
     clear_frame_buffer(app_context); // Clear first
+
+
+    // Go through the render list and figure out how to divide the triangles into tiles and create rasterizer jobs for each tile
+    int total_tiles = app_context->tiles_x * app_context->tiles_y;
+    //RenderTriangle ***tile_tris = malloc(total_tiles * sizeof(RenderTriangle**));
+    RenderTriangle ***tile_triangles = app_context->tile_triangles;
+    int *tile_counts = app_context->tile_counts;
+    int *tile_caps = app_context->tile_caps;
+    memset(tile_counts, 0, total_tiles * sizeof(int));
+
+    for (int t = 0; t < render_list->triangle_count; t++) {
+        RenderTriangle *triangle = &render_list->triangles[t];
+        // Compute the bounding box of the triangle
+        int min_x = MAX(MIN(MIN(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), 0);
+        int max_x = MIN(MAX(MAX(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), app_context->window_resolution.x - 1);
+        int min_y = MAX(MIN(MIN(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), 0);
+        int max_y = MIN(MAX(MAX(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), app_context->window_resolution.y - 1);
+
+        int tile_start_x = min_x / app_context->tile_size;
+        int tile_end_x = max_x / app_context->tile_size;
+        int tile_start_y = min_y / app_context->tile_size;
+        int tile_end_y = max_y / app_context->tile_size;
+
+        for (int ty = tile_start_y; ty <= tile_end_y; ty++) {
+            for (int tx = tile_start_x; tx <= tile_end_x; tx++) {
+                int tile_index = ty * app_context->tiles_x + tx;
+                if (tile_counts[tile_index] >= tile_caps[tile_index]) {
+                    tile_caps[tile_index] *= 2;
+                    tile_triangles[tile_index] = realloc(tile_triangles[tile_index], tile_caps[tile_index] * sizeof(RenderTriangle*));
+                    if (!tile_triangles[tile_index]) {
+                        fprintf(stderr, "Failed to reallocate memory for tile triangles\n");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                tile_triangles[tile_index][tile_counts[tile_index]++] = triangle;
+            }
+        }
+    }
+
+    // Submit jobs for non-empty tiles
+    int job_count = 0;
+    //RasterizerJob *jobs[total_tiles];
+    for (int ty = 0; ty < app_context->tiles_y; ty++) {
+        for (int tx = 0; tx < app_context->tiles_x; tx++) {
+            int tile_index = ty * app_context->tiles_x + tx;
+            if (tile_counts[tile_index] > 0) {
+                RasterizerJob *job = &app_context->rasterizer_job_pool[job_count];
+                job->app_context = app_context;
+                job->render_triangles = tile_triangles[tile_index];
+                job->tile_x = tx * app_context->tile_size;
+                job->tile_y = ty * app_context->tile_size;
+                job->tile_width = MIN(app_context->tile_size, app_context->window_resolution.x - tx * app_context->tile_size);
+                job->tile_height = MIN(app_context->tile_size, app_context->window_resolution.y - ty * app_context->tile_size);
+                job->triangle_count = tile_counts[tile_index];
+                submit_job_to_thread_pool(&app_context->thread_pool, rasterizer_worker, job);
+                job_count++;
+            }
+        }
+    }
     
-    rasterize_render_list(app_context, render_list);
+    // Wait for all rasterizer jobs to finish
+    thread_pool_wait_for_completion(&app_context->thread_pool);
+
 
     SDL_UnlockTexture(app_context->texture);
     SDL_RenderCopy(app_context->renderer, app_context->texture, NULL, NULL);
     SDL_RenderPresent(app_context->renderer);
     return 0;
+}
+
+void initialize_rasterizer_job_pool(AppContext *app_context, int tile_size) {
+    app_context->tile_size = tile_size;
+    app_context->tiles_x = (app_context->window_resolution.x + tile_size - 1) / tile_size;
+    app_context->tiles_y = (app_context->window_resolution.y + tile_size - 1) / tile_size;
+    int total_tiles = app_context->tiles_x * app_context->tiles_y;
+    app_context->tile_triangles = malloc(total_tiles * sizeof(RenderTriangle**));
+    app_context->tile_counts = calloc(total_tiles, sizeof(int));
+    app_context->tile_caps = malloc(total_tiles * sizeof(int));
+    app_context->total_tiles = total_tiles;
+    for (int i = 0; i < total_tiles; i++) {
+        app_context->tile_caps[i] = 16;
+        app_context->tile_triangles[i] = malloc(16 * sizeof(RenderTriangle*));
+    }
+    if (!app_context->tile_triangles || !app_context->tile_counts || !app_context->tile_caps) {
+        fprintf(stderr, "Failed to allocate memory for tile triangle arrays\n");
+        exit(EXIT_FAILURE);
+    }
+    app_context->rasterizer_job_pool = malloc(total_tiles * sizeof(RasterizerJob));
+    if (!app_context->rasterizer_job_pool) {
+        fprintf(stderr, "Failed to allocate memory for rasterizer job pool\n");
+        exit(EXIT_FAILURE);
+    }
 }
