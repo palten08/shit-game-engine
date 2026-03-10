@@ -7,4 +7,5 @@
 #include "app.h"
 #include "scene.h"
 
+void rendering_pipeline_worker(void *arg);
 RenderList generate_render_list(Scene *scene, AppContext *app_context);

@@ -1,7 +1,10 @@
 #pragma once
 
-#include "types.h"
 #include <SDL2/SDL.h>
+#include "types.h"
+#include "multithreading.h"
+
+typedef struct ThreadPool ThreadPool;
 
 /**
  * @brief A structure representing the application context, including window, renderer, texture, and frame buffer information.
@@ -10,6 +13,7 @@
  */
 typedef struct AppContext {
     InputActionMap input_action_map; // 8960 bytes
+    ThreadPool thread_pool; // 128 bytes
     Vector2i window_resolution; // 8-bytes
     SDL_Window *window; // 8-bytes
     SDL_Renderer *renderer; // 8-bytes
@@ -25,3 +29,4 @@ typedef struct AppContext {
 int initialize_sdl_components(AppContext *app_context, Vector2i window_resolution, const char *window_title);
 int cleanup_sdl_components(AppContext *app_context);
 void handle_sdl_events(AppContext *app_context);
+void create_app_thread_pool(AppContext *app_context, int thread_count);

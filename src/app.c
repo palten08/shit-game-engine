@@ -82,3 +82,7 @@ void handle_sdl_events(AppContext *app_context) {
         }
     }
 }
+
+void create_app_thread_pool(AppContext *app_context, int thread_count) {
+    initialize_thread_pool(&app_context->thread_pool, thread_count);
+}

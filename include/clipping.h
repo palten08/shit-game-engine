@@ -8,3 +8,4 @@ typedef struct {
 } ClippingResult;
 
 ClippingResult clip_triangle(Vector4f clip_space_vertices[3]);
+bool is_sphere_in_frustum(Vector4f center_view, float radius, float fov, float aspect, float near, float far);
