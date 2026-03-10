@@ -145,3 +145,25 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3]) {
     }
     return result;
 }
+
+bool is_sphere_in_frustum(Vector4f center_view, float radius, float fov, float aspect, float near, float far) {
+    float z = -center_view.z; // positive distance in front of camera
+
+    // Behind camera or beyond far plane
+    if (z + radius < near) return false;
+    if (z - radius > far) return false;
+
+    // Half extents at this depth
+    float half_height = z * tanf(fov * 0.5f);
+    float half_width = half_height * aspect;
+
+    // Left/right
+    if (center_view.x - radius > half_width) return false;
+    if (center_view.x + radius < -half_width) return false;
+
+    // Top/bottom
+    if (center_view.y - radius > half_height) return false;
+    if (center_view.y + radius < -half_height) return false;
+
+    return true;
+}
