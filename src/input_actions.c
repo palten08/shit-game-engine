@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include "../include/input_actions.h"
 #include "../include/app.h"
+#include "../include/logging.h"
 
 /**
  * @brief Registers a new button input action in the provided InputActionMap
@@ -11,6 +12,7 @@
  * @return The index of the registered action, or -1 if registration failed
  */
 int register_button_input_action(InputActionMap *input_action_map, const char *name, InputBinding *input_action_bindings, int binding_count) {
+    LOG_DEBUG("Registering button type input action");
     for (int i = 0; i < MAX_INPUT_ACTIONS; i++) {
         if (input_action_map->input_actions[i].type == 0) { // Unused slot
             strncpy(input_action_map->input_actions[i].name, name, sizeof(input_action_map->input_actions[i].name) - 1);
@@ -18,9 +20,11 @@ int register_button_input_action(InputActionMap *input_action_map, const char *n
             for (int j = 0; j < binding_count && j < 8; j++) {
                 input_action_map->input_actions[i].button.bindings[j] = input_action_bindings[j];
             }
+            LOG_DEBUG("Button-type input action registered with ID %d", i);
             return i; // Return the index of the registered action
         }
     }
+    LOG_WARNING("Could not register input action '%s' - No available slots", name);
     return -1; // No available slot
 }
 
@@ -35,6 +39,7 @@ int register_button_input_action(InputActionMap *input_action_map, const char *n
  * @return The index of the registered action, or -1 if registration failed
  */
 int register_axis_2d_input_action(InputActionMap *input_action_map, const char *name, AxisBindings positive_x_bindings, AxisBindings negative_x_bindings, AxisBindings positive_y_bindings, AxisBindings negative_y_bindings) {
+    LOG_DEBUG("Registering 2D axis type input action");
     for (int i = 0; i < MAX_INPUT_ACTIONS; i++) {
         if (input_action_map->input_actions[i].type == 0) { // Unused slot
             strncpy(input_action_map->input_actions[i].name, name, sizeof(input_action_map->input_actions[i].name) - 1);
@@ -51,9 +56,11 @@ int register_axis_2d_input_action(InputActionMap *input_action_map, const char *
             for (int j = 0; j < negative_y_bindings.binding_count && j < 4; j++) {
                 input_action_map->input_actions[i].axis_2d.negative_y[j] = negative_y_bindings.bindings[j];
             }
+            LOG_DEBUG("2D axis type input action registered with ID %d", i);
             return i; // Return the index of the registered action
         }
     }
+    LOG_WARNING("Could not register input action '%s' - No available slots", name);
     return -1; // No available slot
 }
 
@@ -66,6 +73,7 @@ int register_axis_2d_input_action(InputActionMap *input_action_map, const char *
  * @return The index of the registered action, or -1 if registration failed
  */
 int register_axis_1d_input_action(InputActionMap *input_action_map, const char *name, AxisBindings positive_bindings, AxisBindings negative_bindings) {
+    LOG_DEBUG("Registering 1D axis type input action");
     for (int i = 0; i < MAX_INPUT_ACTIONS; i++) {
         if (input_action_map->input_actions[i].type == 0) { // Unused slot
             strncpy(input_action_map->input_actions[i].name, name, sizeof(input_action_map->input_actions[i].name) - 1);
@@ -76,9 +84,11 @@ int register_axis_1d_input_action(InputActionMap *input_action_map, const char *
             for (int j = 0; j < negative_bindings.binding_count && j < 4; j++) {
                 input_action_map->input_actions[i].axis_1d.negative[j] = negative_bindings.bindings[j];
             }
+            LOG_DEBUG("1D axis type input action registered with ID %d", i);
             return i; // Return the index of the registered action
         }
     }
+    LOG_WARNING("Could not register input action '%s' - No available slots", name);
     return -1; // No available slot
 }
 

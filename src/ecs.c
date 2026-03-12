@@ -9,18 +9,22 @@ int MESH;
 
 int register_entity(Scene *scene) {
     if (scene->registered_entity_count >= MAX_ENTITIES) {
+        LOG_WARNING("No room to register new entity; Registered entity count is %d", scene->registered_entity_count);
         return -1; // No available slot for the entity
     }
     int entity_id = scene->entity_manager.next_id++;
+    LOG_DEBUG("Registering entity with ID %d", entity_id);
     scene->registered_entity_count++;
     return entity_id;
 }
 
 int register_component(Scene *scene, size_t component_size, const char *name, ComponentParserFunction parser) {
     if (scene->registered_component_count >= MAX_COMPONENTS) {
+        LOG_WARNING("No room to register new component ('%s'); Registered component count is %d", name, scene->registered_component_count);
         return -1; // No available slot for the component
     }
     int component_id = scene->registered_component_count;
+    LOG_DEBUG("Registering component with ID %d", component_id);
     scene->component_array[component_id].size = component_size;
     strncpy(scene->component_array[component_id].name, name, sizeof(scene->component_array[component_id].name) - 1);
     scene->component_array[component_id].name[sizeof(scene->component_array[component_id].name) - 1] = '\0';
@@ -33,12 +37,15 @@ int register_component(Scene *scene, size_t component_size, const char *name, Co
 
 void *get_component(Scene *scene, int component_id, Entity entity) {
     if (component_id < 0 || component_id >= scene->registered_component_count) {
+        LOG_WARNING("Could not find component with ID %d", component_id);
         return NULL; // Invalid component ID
     }
     if (entity < 0 || entity >= MAX_ENTITIES) {
+        LOG_WARNING("Invalid entity ID %d", entity);
         return NULL; // Invalid entity ID
     }
     if ((scene->component_masks[entity] & (1ULL << component_id)) == 0) {
+        LOG_DEBUG("Entity %d does not have component with ID %d", entity, component_id);
         return NULL; // Entity does not have this component
     }
     return (void *)(char *)(scene->component_array[component_id].data + (entity * scene->component_array[component_id].size));
@@ -46,9 +53,11 @@ void *get_component(Scene *scene, int component_id, Entity entity) {
 
 int register_system(Scene *scene, void (*system_function)(Scene *, AppContext *), uint64_t required_components) {
     if (scene->registered_system_count >= MAX_SYSTEMS) {
+        LOG_WARNING("No room to register new system; Registered system count is %d", scene->registered_system_count);
         return -1; // No available slot for the system
     }
     int system_id = scene->registered_system_count;
+    LOG_DEBUG("Registering system with ID %d", system_id);
     scene->systems[system_id].function = system_function;
     scene->systems[system_id].required_components = required_components;
     scene->registered_system_count++;
@@ -57,6 +66,7 @@ int register_system(Scene *scene, void (*system_function)(Scene *, AppContext *)
 
 void *get_system(Scene *scene, int system_id) {
     if (system_id < 0 || system_id >= scene->registered_system_count) {
+        LOG_WARNING("Could not find system with ID %d", system_id);
         return NULL; // Invalid system ID
     }
     return (void *)&scene->systems[system_id];
@@ -70,8 +80,10 @@ void run_systems(Scene *scene, AppContext *app_context) {
 }
 
 void parse_transform_component(Scene *scene, Entity entity, int component_id, JSON_Object *json) {
+    LOG_DEBUG("Parsing transform component on entity %d", entity);
     TransformComponent *transform_component = get_component(scene, component_id, entity);
     if (!transform_component) {
+        LOG_WARNING("Failed to get the transform component on entity %d", entity);
         return; // Failed to get the component
     }
     JSON_Object *position_json = json_object_get_object(json, "position");
@@ -102,8 +114,10 @@ void parse_transform_component(Scene *scene, Entity entity, int component_id, JS
 }
 
 void parse_mesh_component(Scene *scene, Entity entity, int component_id, JSON_Object *json) {
+    LOG_DEBUG("Parsing mesh component on entity %d", entity);
     MeshComponent *mesh_component = get_component(scene, component_id, entity);
     if (!mesh_component) {
+        LOG_WARNING("Failed to get the mesh component on entity %d", entity);
         return; // Failed to get the component
     }
     mesh_component->mesh_id = (int)json_object_get_number(json, "mesh_id");

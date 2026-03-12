@@ -3,8 +3,10 @@
 #include "../include/obj_loader.h"
 #include "../include/types.h"
 #include "../include/vector_operations.h"
+#include "../include/logging.h"
 
 Mesh3D load_obj(const char *file_name) {
+    LOG_DEBUG("Loading OBJ file: %s", file_name);
     Mesh3D loaded_mesh = {0};
     Point3D *loaded_vertices = malloc(sizeof(Point3D));
     Triangle3D *loaded_triangles = malloc(sizeof(Triangle3D));
@@ -13,7 +15,7 @@ Mesh3D load_obj(const char *file_name) {
     FILE *file_pointer;
     file_pointer = fopen(file_name, "r");
     if (!file_pointer) {
-        perror("Failed to open file");
+        LOG_ERROR("Error: Failed to open OBJ file: %s", file_name);
         return loaded_mesh;
     }
     while (fgets(file_data, sizeof(file_data), file_pointer) != NULL) {
@@ -66,12 +68,13 @@ Mesh3D load_obj(const char *file_name) {
                 loaded_triangles[loaded_mesh.triangle_count - 1].vertex_indices[2] = temp_vertex_indices[3];
                 loaded_triangles[loaded_mesh.triangle_count - 1].vertex_normal_indices[2] = temp_vertex_normal_indices[3];
             } else {
-                printf("Warning: Failed to parse face data from line: %s\n", file_data);
+                LOG_WARNING("Warning: Failed to parse face data from line: %s", file_data);
             }
         } else {
         }
        free(file_data_copy);
     }
+    LOG_DEBUG("Finished reading OBJ file");
     fclose(file_pointer);
 
     // Get all the loaded data into the mesh structure
