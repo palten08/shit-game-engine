@@ -5,6 +5,7 @@
 #include "../include/types.h"
 #include "../include/app.h"
 #include "../include/coordinates.h"
+#include "../include/logging.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -223,7 +224,7 @@ void rasterizer_worker(void *arg) {
 int render(AppContext *app_context, RenderList *render_list) {
     int texture_lock_result = SDL_LockTexture(app_context->texture, NULL, (void**)&app_context->frame_buffer, &(int){0});
     if (texture_lock_result != 0) {
-        fprintf(stderr, "Error locking SDL texture: %s\n", SDL_GetError());
+        LOG_ERROR("Error locking SDL texture: %s", SDL_GetError());
         return 1;
     }
 
@@ -258,7 +259,7 @@ int render(AppContext *app_context, RenderList *render_list) {
                     tile_caps[tile_index] *= 2;
                     tile_triangles[tile_index] = realloc(tile_triangles[tile_index], tile_caps[tile_index] * sizeof(RenderTriangle*));
                     if (!tile_triangles[tile_index]) {
-                        fprintf(stderr, "Failed to reallocate memory for tile triangles\n");
+                        LOG_ERROR("Failed to reallocate memory for tile triangles");
                         exit(EXIT_FAILURE);
                     }
                 }
@@ -299,6 +300,7 @@ int render(AppContext *app_context, RenderList *render_list) {
 }
 
 void initialize_rasterizer_job_pool(AppContext *app_context, int tile_size) {
+    LOG_INFO("Creating rasterizer job pool with tile size %d", tile_size);
     app_context->tile_size = tile_size;
     app_context->tiles_x = (app_context->window_resolution.x + tile_size - 1) / tile_size;
     app_context->tiles_y = (app_context->window_resolution.y + tile_size - 1) / tile_size;
@@ -312,12 +314,12 @@ void initialize_rasterizer_job_pool(AppContext *app_context, int tile_size) {
         app_context->tile_triangles[i] = malloc(16 * sizeof(RenderTriangle*));
     }
     if (!app_context->tile_triangles || !app_context->tile_counts || !app_context->tile_caps) {
-        fprintf(stderr, "Failed to allocate memory for tile triangle arrays\n");
+        LOG_ERROR("Failed to allocate memory for tile triangle arrays");
         exit(EXIT_FAILURE);
     }
     app_context->rasterizer_job_pool = malloc(total_tiles * sizeof(RasterizerJob));
     if (!app_context->rasterizer_job_pool) {
-        fprintf(stderr, "Failed to allocate memory for rasterizer job pool\n");
+        LOG_ERROR("Failed to allocate memory for rasterizer job pool");
         exit(EXIT_FAILURE);
     }
 }

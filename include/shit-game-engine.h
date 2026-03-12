@@ -17,3 +17,5 @@
 #include "utils.h"
 #include "vector_operations.h"
 #include "virtual_camera.h"
+#include "engine_core.h"
+#include "logging.h"

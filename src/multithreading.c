@@ -5,6 +5,7 @@
 #include "../include/clipping.h"
 #include "../include/coordinates.h"
 #include "../include/ecs.h"
+#include "../include/logging.h"
 
 void* thread_pool_worker_function(void *arg) {
     ThreadPool *pool = (ThreadPool*)arg;
@@ -43,9 +44,10 @@ void* thread_pool_worker_function(void *arg) {
 }
 
 void initialize_thread_pool(ThreadPool *thread_pool, int thread_count) {
+    LOG_INFO("Initializing thread pool with %d threads", thread_count);
     thread_pool->threads = malloc(thread_count * sizeof(pthread_t));
     if (!thread_pool->threads) {
-        fprintf(stderr, "Failed to allocate memory for thread pool\n");
+        LOG_ERROR("Failed to allocate memory for thread pool");
         exit(EXIT_FAILURE);
     }
     thread_pool->thread_count = thread_count;
@@ -53,7 +55,7 @@ void initialize_thread_pool(ThreadPool *thread_pool, int thread_count) {
     thread_pool->job_queue_capacity = 16; // Initial capacity for the job queue
     thread_pool->job_queue = malloc(thread_pool->job_queue_capacity * sizeof(Job));
     if (!thread_pool->job_queue) {
-        fprintf(stderr, "Failed to allocate memory for job queue\n");
+        LOG_ERROR("Failed to allocate memory for job queue");
         exit(EXIT_FAILURE);
     }
     thread_pool->tasks_in_progress = 0;
@@ -69,6 +71,7 @@ void initialize_thread_pool(ThreadPool *thread_pool, int thread_count) {
 }
 
 void destroy_thread_pool(ThreadPool *thread_pool) {
+    LOG_INFO("Destroying thread pool");
     // Signal all threads to stop
     pthread_mutex_lock(&thread_pool->mutex);
     thread_pool->stop_flag = true;
@@ -93,7 +96,7 @@ void submit_job_to_thread_pool(ThreadPool *thread_pool, void (*function)(void *)
         thread_pool->job_queue_capacity *= 2;
         thread_pool->job_queue = realloc(thread_pool->job_queue, thread_pool->job_queue_capacity * sizeof(Job));
         if (!thread_pool->job_queue) {
-            fprintf(stderr, "Failed to reallocate memory for job queue\n");
+            LOG_ERROR("Failed to reallocate memory for job queue");
             exit(EXIT_FAILURE);
         }
         // If the tail index is behind the head index, we need to move the jobs that are wrapped around to the end of the new buffer

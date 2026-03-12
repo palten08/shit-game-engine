@@ -14,7 +14,7 @@ void rendering_pipeline_worker(void *arg) {
     int initial_triangle_capacity = 4096;
     job->render_triangles = malloc(initial_triangle_capacity * sizeof(RenderTriangle));
     if (!job->render_triangles) {
-        fprintf(stderr, "Failed to allocate memory for render triangles\n");
+        LOG_ERROR("Failed to allocate memory for render triangles");
         exit(EXIT_FAILURE);
     }
 
@@ -95,7 +95,7 @@ void rendering_pipeline_worker(void *arg) {
                     initial_triangle_capacity *= 2;
                     job->render_triangles = realloc(job->render_triangles, initial_triangle_capacity * sizeof(RenderTriangle));
                     if (!job->render_triangles) {
-                        fprintf(stderr, "Failed to reallocate memory for render triangles\n");
+                        LOG_ERROR("Failed to reallocate memory for render triangles");
                         exit(EXIT_FAILURE);
                     }
                 }
@@ -140,7 +140,7 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
         if (jobs[i]->render_triangles) {
             render_list.triangles = realloc(render_list.triangles, (render_list.triangle_count + jobs[i]->triangle_count) * sizeof(RenderTriangle));
             if (!render_list.triangles) {
-                fprintf(stderr, "Failed to reallocate memory for render list triangles\n");
+                LOG_ERROR("Failed to reallocate memory for render list triangles");
                 exit(EXIT_FAILURE);
             }
             memcpy(&render_list.triangles[render_list.triangle_count], jobs[i]->render_triangles, jobs[i]->triangle_count * sizeof(RenderTriangle));

@@ -1,6 +1,10 @@
+#include <SDL2/SDL.h>
+
+#define MSF_GIF_IMPL
+
 #include "../include/app.h"
 #include "../include/types.h"
-#include <SDL2/SDL.h>
+#include "../include/logging.h"
 
 /**
  * @brief Initializes SDL components, including the window, renderer, and texture.
@@ -10,33 +14,38 @@
  * @return 0 on success, 1 on failure.
  */
 int initialize_sdl_components(AppContext *app_context, Vector2i window_resolution, const char *window_title) {
+    LOG_INFO("Calling SDL init");
     int sdl_init_result = SDL_Init(SDL_INIT_EVERYTHING);
 
     if (sdl_init_result != 0) {
-        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
+        LOG_ERROR("Error initializing SDL: %s", SDL_GetError());
         return 1;
     }
 
+    LOG_DEBUG("Setting window resolution");
     app_context->window_resolution = window_resolution;
 
+    LOG_INFO("Creating SDL window");
     app_context->window = SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, app_context->window_resolution.x, app_context->window_resolution.y, SDL_WINDOW_SHOWN);
     if (app_context->window == NULL) {
-        fprintf(stderr, "Error creating SDL window: %s\n", SDL_GetError());
+        LOG_ERROR("Error creating SDL window: %s", SDL_GetError());
         SDL_Quit();
         return 1;
     }
 
+    LOG_INFO("Creating SDL renderer");
     app_context->renderer = SDL_CreateRenderer(app_context->window, -1, 0);
     if (app_context->renderer == NULL) {
-        fprintf(stderr, "Error creating SDL renderer: %s\n", SDL_GetError());
+        LOG_ERROR("Error creating SDL renderer: %s", SDL_GetError());
         SDL_DestroyWindow(app_context->window);
         SDL_Quit();
         return 1;
     }
 
+    LOG_INFO("Creating SDL texture");
     app_context->texture = SDL_CreateTexture(app_context->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, app_context->window_resolution.x, app_context->window_resolution.y);
     if (app_context->texture == NULL) {
-        fprintf(stderr, "Error creating SDL texture: %s\n", SDL_GetError());
+        LOG_ERROR("Error creating SDL texture: %s", SDL_GetError());
         SDL_DestroyRenderer(app_context->renderer);
         SDL_DestroyWindow(app_context->window);
         SDL_Quit();
@@ -47,6 +56,7 @@ int initialize_sdl_components(AppContext *app_context, Vector2i window_resolutio
 
     app_context->frame_buffer = NULL;
 
+    LOG_DEBUG("Finish SDL init");
     return 0;
 }
 
@@ -56,15 +66,20 @@ int initialize_sdl_components(AppContext *app_context, Vector2i window_resolutio
  * @return 0 on success.
  */
 int cleanup_sdl_components(AppContext *app_context) {
+    LOG_INFO("Cleaning up SDL components");
+    LOG_INFO("Cleaning up SDL texture");
     if (app_context->texture) {
         SDL_DestroyTexture(app_context->texture);
     }
+    LOG_INFO("Cleaning up SDL renderer");
     if (app_context->renderer) {
         SDL_DestroyRenderer(app_context->renderer);
     }
+    LOG_INFO("Cleaning up SDL window");
     if (app_context->window) {
         SDL_DestroyWindow(app_context->window);
     }
+    LOG_DEBUG("Calling SDL quit");
     SDL_Quit();
     return 0;
 }
@@ -74,9 +89,11 @@ void handle_sdl_events(AppContext *app_context) {
     while (SDL_PollEvent(&sdl_event)) {
         switch (sdl_event.type) {
             case SDL_QUIT:
+                LOG_INFO("Handling SDL_QUIT event");
                 app_context->application_running = false;
                 break;
             case SDL_MOUSEWHEEL:
+                LOG_DEBUG("Handling SDL_MOUSEWHEEL event");
                 app_context->scroll_wheel_delta_this_frame += sdl_event.wheel.y;
                 break;
         }
@@ -84,5 +101,6 @@ void handle_sdl_events(AppContext *app_context) {
 }
 
 void create_app_thread_pool(AppContext *app_context, int thread_count) {
+    LOG_INFO("Initializing thread pool with %d threads", thread_count);
     initialize_thread_pool(&app_context->thread_pool, thread_count);
 }

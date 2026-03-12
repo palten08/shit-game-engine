@@ -1,7 +1,9 @@
+#include <math.h>
+
 #include "../include/virtual_camera.h"
 #include "../include/types.h"
 #include "../include/matrix_operations.h"
-#include <math.h>
+#include "../include/logging.h"
 
 /**
  * @brief Initializes a virtual camera, and also creates a perspective projection matrix to accompany it
@@ -14,6 +16,7 @@
  * @return A initialized VirtualCamera structure.
  */
 VirtualCamera initialize_virtual_camera(float aspect_ratio, float field_of_view, float near_plane_distance, float far_plane_distance, Vector3f initial_position, Vector3f initial_rotation, Vector3f look_target) {
+    LOG_DEBUG("Initializing virtual camera with aspect ratio: %f, field of view: %f degrees, near plane distance: %f, far plane distance: %f", aspect_ratio, field_of_view, near_plane_distance, far_plane_distance);
     VirtualCamera camera;
     camera.field_of_view = field_of_view * (atan(1)*4 / 180.0f); // Convert from degrees to radians
     camera.aspect_ratio = aspect_ratio;
