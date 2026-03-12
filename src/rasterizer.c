@@ -166,49 +166,121 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
     }
 
     // Compute the bounding box of the triangle
+    // min_x, min_y is the top left corner of the bounding box
+    // max_x, max_y is the bottom right corner of the bounding box
     int min_x = CLAMP(MIN(MIN(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), tile_x, tile_x + tile_width - 1);
     int max_x = CLAMP(MAX(MAX(triangle->screen_positions[0].x, triangle->screen_positions[1].x), triangle->screen_positions[2].x), tile_x, tile_x + tile_width - 1);
     int min_y = CLAMP(MIN(MIN(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), tile_y, tile_y + tile_height - 1);
     int max_y = CLAMP(MAX(MAX(triangle->screen_positions[0].y, triangle->screen_positions[1].y), triangle->screen_positions[2].y), tile_y, tile_y + tile_height - 1);
 
-    // Step deltas
-    float w0_step_x = vertex1.y - vertex2.y;
-    float w0_step_y = vertex2.x - vertex1.x;
-    float w1_step_x = vertex2.y - vertex0.y;
-    float w1_step_y = vertex0.x - vertex2.x;
-    float w2_step_x = vertex0.y - vertex1.y;
-    float w2_step_y = vertex1.x - vertex0.x;
+    // Step values for w0, w1, and w2 to simplify the inner loop calculations.
+    float weight0_step_x = vertex1.y - vertex2.y;
+    float weight0_step_y = vertex2.x - vertex1.x;
+    float weight1_step_x = vertex2.y - vertex0.y;
+    float weight1_step_y = vertex0.x - vertex2.x;
+    float weight2_step_x = vertex0.y - vertex1.y;
+    float weight2_step_y = vertex1.x - vertex0.x;
 
-    Vector2f start_point = { (float)(min_x + 0.5f), (float)(min_y + 0.5f) }; // Start at the center of the top-left pixel in the bounding box
-    float w0_row = edge_function(vertex1, vertex2, start_point);
-    float w1_row = edge_function(vertex2, vertex0, start_point);
-    float w2_row = edge_function(vertex0, vertex1, start_point);
+    Vector2f start_point = { min_x + 0.5f, min_y + 0.5f };
+    float weight0_block_row = edge_function(vertex1, vertex2, start_point);
+    float weight1_block_row = edge_function(vertex2, vertex0, start_point);
+    float weight2_block_row = edge_function(vertex0, vertex1, start_point);
 
-    for (int y = min_y; y <= max_y; y++) {
-        float w0 = w0_row;
-        float w1 = w1_row;
-        float w2 = w2_row;
-        for (int x = min_x; x <= max_x; x++) {
-            if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0)) { // Check if the point is inside the triangle
-                float bary0 = w0 / triangle_area;
-                float bary1 = w1 / triangle_area;
-                float bary2 = w2 / triangle_area;
-                float depth = bary0 * triangle->depth_values[0] + bary1 * triangle->depth_values[1] + bary2 * triangle->depth_values[2]; // Interpolate depth using barycentric coordinates
-                int index = y * app_context->window_resolution.x + x;
-                assert(x >= tile_x && x < tile_x + tile_width);
-                assert(y >= tile_y && y < tile_y + tile_height);
-                if (depth < app_context->depth_buffer->depth_values[index]) { // Depth test
-                    app_context->depth_buffer->depth_values[index] = depth; // Update depth buffer
-                    draw_pixel_at_coordinates(app_context, x, y, triangle->color);
+    int block_size = 4;
+
+    for (int block_y = min_y; block_y <= max_y; block_y += block_size) {
+        float weight0_block = weight0_block_row;
+        float weight1_block = weight1_block_row;
+        float weight2_block = weight2_block_row;
+
+        for (int block_x = min_x; block_x <= max_x; block_x += block_size) {
+            float weight0_block_top_right = weight0_block + (block_size - 1) * weight0_step_x;
+            float weight0_block_bottom_left = weight0_block + (block_size - 1) * weight0_step_y;
+            float weight0_block_bottom_right = weight0_block + (block_size - 1) * weight0_step_x + (block_size - 1) * weight0_step_y;
+            
+            float weight1_block_top_right = weight1_block + (block_size - 1) * weight1_step_x;
+            float weight1_block_bottom_left = weight1_block + (block_size -1) * weight1_step_y;
+            float weight1_block_bottom_right = weight1_block + (block_size - 1) * weight1_step_x + (block_size - 1) * weight1_step_y;
+            
+            float weight2_block_top_right = weight2_block + (block_size - 1) * weight2_step_x;
+            float weight2_block_bottom_left = weight2_block + (block_size - 1) * weight2_step_y;
+            float weight2_block_bottom_right = weight2_block + (block_size - 1) * weight2_step_x + (block_size - 1) * weight2_step_y;
+
+            bool weight0_all_inside = (weight0_block <= 0 && weight0_block_top_right <= 0 && weight0_block_bottom_left <= 0 && weight0_block_bottom_right <= 0);
+            bool weight1_all_inside = (weight1_block <= 0 && weight1_block_top_right <= 0 && weight1_block_bottom_left <= 0 && weight1_block_bottom_right <= 0);
+            bool weight2_all_inside = (weight2_block <= 0 && weight2_block_top_right <= 0 && weight2_block_bottom_left <= 0 && weight2_block_bottom_right <= 0);
+            bool weight0_all_outside = (weight0_block > 0 && weight0_block_top_right > 0 && weight0_block_bottom_left > 0 && weight0_block_bottom_right > 0);
+            bool weight1_all_outside = (weight1_block > 0 && weight1_block_top_right > 0 && weight1_block_bottom_left > 0 && weight1_block_bottom_right > 0);
+            bool weight2_all_outside = (weight2_block > 0 && weight2_block_top_right > 0 && weight2_block_bottom_left > 0 && weight2_block_bottom_right > 0);
+
+            if (weight0_all_outside || weight1_all_outside || weight2_all_outside) {
+                // Skip this block since it's completely outside the triangle
+            } else if (weight0_all_inside && weight1_all_inside && weight2_all_inside) {
+                float weight0_pixel_row = weight0_block;
+                float weight1_pixel_row = weight1_block;
+                float weight2_pixel_row = weight2_block;
+                for (int y = block_y; y < block_y + block_size && y <= max_y; y++) {
+                    float weight0 = weight0_pixel_row;
+                    float weight1 = weight1_pixel_row;
+                    float weight2 = weight2_pixel_row;
+                    for (int x = block_x; x < block_x + block_size && x <= max_x; x++) {
+                        float bary0 = weight0 / triangle_area;
+                        float bary1 = weight1 / triangle_area;
+                        float bary2 = weight2 / triangle_area;
+                        float depth = bary0 * triangle->depth_values[0] + bary1 * triangle->depth_values[1] + bary2 * triangle->depth_values[2];
+                        int index = y * app_context->window_resolution.x + x;
+                        assert(x >= tile_x && x < tile_x + tile_width);
+                        assert(y >= tile_y && y < tile_y + tile_height);
+                        if (depth < app_context->depth_buffer->depth_values[index]) {
+                            app_context->depth_buffer->depth_values[index] = depth;
+                            draw_pixel_at_coordinates(app_context, x, y, triangle->color);
+                        }
+                        weight0 += weight0_step_x;
+                        weight1 += weight1_step_x;
+                        weight2 += weight2_step_x;
+                    }
+                    weight0_pixel_row += weight0_step_y;
+                    weight1_pixel_row += weight1_step_y;
+                    weight2_pixel_row += weight2_step_y;
+                }
+            } else {
+                float weight0_pixel_row = weight0_block;
+                float weight1_pixel_row = weight1_block;
+                float weight2_pixel_row = weight2_block;
+                for (int y = block_y; y < block_y + block_size && y <= max_y; y++) {
+                    float weight0 = weight0_pixel_row;
+                    float weight1 = weight1_pixel_row;
+                    float weight2 = weight2_pixel_row;
+                    for (int x = block_x; x < block_x + block_size && x <= max_x; x++) {
+                        if (weight0 <= 0 && weight1 <= 0 && weight2 <= 0) {
+                            float bary0 = weight0 / triangle_area;
+                            float bary1 = weight1 / triangle_area;
+                            float bary2 = weight2 / triangle_area;
+                            float depth = bary0 * triangle->depth_values[0] + bary1 * triangle->depth_values[1] + bary2 * triangle->depth_values[2];
+                            int index = y * app_context->window_resolution.x + x;
+                            assert(x >= tile_x && x < tile_x + tile_width);
+                            assert(y >= tile_y && y < tile_y + tile_height);
+                            if (depth < app_context->depth_buffer->depth_values[index]) {
+                                app_context->depth_buffer->depth_values[index] = depth;
+                                draw_pixel_at_coordinates(app_context, x, y, triangle->color);
+                            }
+                        }
+                        weight0 += weight0_step_x;
+                        weight1 += weight1_step_x;
+                        weight2 += weight2_step_x;
+                    }
+                    weight0_pixel_row += weight0_step_y;
+                    weight1_pixel_row += weight1_step_y;
+                    weight2_pixel_row += weight2_step_y;
                 }
             }
-            w0 += w0_step_x;
-            w1 += w1_step_x;
-            w2 += w2_step_x;
+            weight0_block += block_size * weight0_step_x;
+            weight1_block += block_size * weight1_step_x;
+            weight2_block += block_size * weight2_step_x;
         }
-        w0_row += w0_step_y;
-        w1_row += w1_step_y;
-        w2_row += w2_step_y;
+        weight0_block_row += block_size * weight0_step_y;
+        weight1_block_row += block_size * weight1_step_y;
+        weight2_block_row += block_size * weight2_step_y;
     }
 }
 
