@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = -g -Wall -Wextra -Iinclude $(shell sdl2-config --cflags)
+CFLAGS  = -g -Wall -Wextra -Iinclude $(shell sdl2-config --cflags) -msse4.1
 SRC     = $(wildcard src/*.c)
 OBJ     = $(SRC:src/%.c=build/%.o)
 LDFLAGS = $(shell sdl2-config --libs) -lm -lpthread

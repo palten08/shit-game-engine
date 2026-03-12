@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <assert.h>
+#include <immintrin.h>
 
 #include "../include/rasterizer.h"
 #include "../include/types.h"
@@ -164,6 +165,7 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
     if (triangle_area >= 0) {
         return; // Skip degenerate triangles
     }
+    __m128 inverse_triangle_area = _mm_set1_ps(1.0f / triangle_area);
 
     // Compute the bounding box of the triangle
     // min_x, min_y is the top left corner of the bounding box
@@ -223,22 +225,38 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
                     float weight0 = weight0_pixel_row;
                     float weight1 = weight1_pixel_row;
                     float weight2 = weight2_pixel_row;
-                    for (int x = block_x; x < block_x + block_size && x <= max_x; x++) {
-                        float bary0 = weight0 / triangle_area;
-                        float bary1 = weight1 / triangle_area;
-                        float bary2 = weight2 / triangle_area;
-                        float depth = bary0 * triangle->depth_values[0] + bary1 * triangle->depth_values[1] + bary2 * triangle->depth_values[2];
-                        int index = y * app_context->window_resolution.x + x;
-                        assert(x >= tile_x && x < tile_x + tile_width);
-                        assert(y >= tile_y && y < tile_y + tile_height);
-                        if (depth < app_context->depth_buffer->depth_values[index]) {
-                            app_context->depth_buffer->depth_values[index] = depth;
-                            draw_pixel_at_coordinates(app_context, x, y, triangle->color);
+
+                    // Pack 4 corner weights into SIMD registers
+                    __m128 weight0_vec = _mm_set_ps(weight0 + 3 * weight0_step_x, weight0 + 2 * weight0_step_x, weight0 + weight0_step_x, weight0);
+                    __m128 weight1_vec = _mm_set_ps(weight1 + 3 * weight1_step_x, weight1 + 2 * weight1_step_x, weight1 + weight1_step_x, weight1);
+                    __m128 weight2_vec = _mm_set_ps(weight2 + 3 * weight2_step_x, weight2 + 2 * weight2_step_x, weight2 + weight2_step_x, weight2);
+
+                    // Compute 4 barycentric coordinates in parallel
+                    __m128 bary0_vec = _mm_mul_ps(weight0_vec, inverse_triangle_area);
+                    __m128 bary1_vec = _mm_mul_ps(weight1_vec, inverse_triangle_area);
+                    __m128 bary2_vec = _mm_mul_ps(weight2_vec, inverse_triangle_area);
+
+                    // Compare 4 depth values in parallel
+                    __m128 depth_vec = _mm_add_ps(_mm_add_ps(_mm_mul_ps(bary0_vec, _mm_set1_ps(triangle->depth_values[0])), _mm_mul_ps(bary1_vec, _mm_set1_ps(triangle->depth_values[1]))), _mm_mul_ps(bary2_vec, _mm_set1_ps(triangle->depth_values[2])));
+
+                    // Retrieve the current depth buffer values for the 4 pixels
+                    int index = y * app_context->window_resolution.x + block_x;
+                    __m128 current_depth_vec = _mm_loadu_ps(&app_context->depth_buffer->depth_values[index]);
+                    // See which of the new depths are closer to the camera
+                    __m128 new_max_depth = _mm_cmplt_ps(depth_vec, current_depth_vec);
+
+                    float depths[4];
+                    _mm_storeu_ps(depths, depth_vec);
+
+                    int mask = _mm_movemask_ps(new_max_depth);
+                    for (int i = 0; i < 4; i++) {
+                        if ((mask & (1 << i)) && (block_x + i <= max_x)) {
+                            app_context->depth_buffer->depth_values[index + i] = depths[i];
+                            app_context->frame_buffer[index + i] = triangle->color;
+                            //draw_pixel_at_coordinates(app_context, block_x + i, y, triangle->color);
                         }
-                        weight0 += weight0_step_x;
-                        weight1 += weight1_step_x;
-                        weight2 += weight2_step_x;
                     }
+
                     weight0_pixel_row += weight0_step_y;
                     weight1_pixel_row += weight1_step_y;
                     weight2_pixel_row += weight2_step_y;
@@ -251,23 +269,37 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
                     float weight0 = weight0_pixel_row;
                     float weight1 = weight1_pixel_row;
                     float weight2 = weight2_pixel_row;
-                    for (int x = block_x; x < block_x + block_size && x <= max_x; x++) {
-                        if (weight0 <= 0 && weight1 <= 0 && weight2 <= 0) {
-                            float bary0 = weight0 / triangle_area;
-                            float bary1 = weight1 / triangle_area;
-                            float bary2 = weight2 / triangle_area;
-                            float depth = bary0 * triangle->depth_values[0] + bary1 * triangle->depth_values[1] + bary2 * triangle->depth_values[2];
-                            int index = y * app_context->window_resolution.x + x;
-                            assert(x >= tile_x && x < tile_x + tile_width);
-                            assert(y >= tile_y && y < tile_y + tile_height);
-                            if (depth < app_context->depth_buffer->depth_values[index]) {
-                                app_context->depth_buffer->depth_values[index] = depth;
-                                draw_pixel_at_coordinates(app_context, x, y, triangle->color);
-                            }
+
+                    __m128 weight0_vec = _mm_set_ps(weight0 + 3 * weight0_step_x, weight0 + 2 * weight0_step_x, weight0 + weight0_step_x, weight0);
+                    __m128 weight1_vec = _mm_set_ps(weight1 + 3 * weight1_step_x, weight1 + 2 * weight1_step_x, weight1 + weight1_step_x, weight1);
+                    __m128 weight2_vec = _mm_set_ps(weight2 + 3 * weight2_step_x, weight2 + 2 * weight2_step_x, weight2 + weight2_step_x, weight2);
+
+                    __m128 zero = _mm_setzero_ps();
+                    __m128 inside_mask = _mm_and_ps(_mm_and_ps(_mm_cmple_ps(weight0_vec, zero), _mm_cmple_ps(weight1_vec, zero)), _mm_cmple_ps(weight2_vec, zero));
+
+                    __m128 bary0_vec = _mm_mul_ps(weight0_vec, inverse_triangle_area);
+                    __m128 bary1_vec = _mm_mul_ps(weight1_vec, inverse_triangle_area);
+                    __m128 bary2_vec = _mm_mul_ps(weight2_vec, inverse_triangle_area);
+
+                    __m128 depth_vec = _mm_add_ps(_mm_add_ps(_mm_mul_ps(bary0_vec, _mm_set1_ps(triangle->depth_values[0])), _mm_mul_ps(bary1_vec, _mm_set1_ps(triangle->depth_values[1]))), _mm_mul_ps(bary2_vec, _mm_set1_ps(triangle->depth_values[2])));
+
+                    float depths[4];
+                    _mm_storeu_ps(depths, depth_vec);
+
+                    int index = y * app_context->window_resolution.x + block_x;
+                    __m128 current_depth_vec = _mm_loadu_ps(&app_context->depth_buffer->depth_values[index]);
+
+                    __m128 depth_mask = _mm_cmplt_ps(depth_vec, current_depth_vec);
+
+                    __m128 final_mask = _mm_and_ps(inside_mask, depth_mask);
+
+                    int mask = _mm_movemask_ps(final_mask);
+
+                    for (int i = 0; i < 4; i++) {
+                        if ((mask & (1 << i)) && (block_x + i <= max_x)) {
+                            app_context->depth_buffer->depth_values[index + i] = depths[i];
+                            draw_pixel_at_coordinates(app_context, block_x + i, y, triangle->color);
                         }
-                        weight0 += weight0_step_x;
-                        weight1 += weight1_step_x;
-                        weight2 += weight2_step_x;
                     }
                     weight0_pixel_row += weight0_step_y;
                     weight1_pixel_row += weight1_step_y;
