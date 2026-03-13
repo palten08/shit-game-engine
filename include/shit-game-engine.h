@@ -19,3 +19,4 @@
 #include "virtual_camera.h"
 #include "engine_core.h"
 #include "logging.h"
+#include "quaternion_operations.h"
