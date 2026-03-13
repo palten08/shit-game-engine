@@ -5,7 +5,7 @@
 #include "vector_types.h"
 #include "geometry_types.h"
 #include "parson.h"
-
+#include "rotation_types.h"
 
 /** @defgroup ECS Entity Component System Structures
  *  @{
@@ -41,8 +41,8 @@ typedef struct {
  */
 typedef struct {
     Matrix4 model_matrix; // 64 bytes
+    Quaternion rotation; // 16 bytes
     Vector3f position; // 12 bytes
-    Vector3f rotation; // 12 bytes
     Vector3f scale;    // 12 bytes
 } TransformComponent;
 

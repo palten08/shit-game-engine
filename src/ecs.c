@@ -3,6 +3,7 @@
 #include "../include/scene.h"
 #include "../include/app.h"
 #include "../include/matrix_operations.h"
+#include "../include/quaternion_operations.h"
 
 int TRANSFORM;
 int MESH;
@@ -95,9 +96,7 @@ void parse_transform_component(Scene *scene, Entity entity, int component_id, JS
         transform_component->position.z = json_object_get_number(position_json, "z");
     }
     if (rotation_json) {
-        transform_component->rotation.x = json_object_get_number(rotation_json, "x");
-        transform_component->rotation.y = json_object_get_number(rotation_json, "y");
-        transform_component->rotation.z = json_object_get_number(rotation_json, "z");
+        transform_component->rotation = quaternion_from_euler_angles(json_object_get_number(rotation_json, "x"), json_object_get_number(rotation_json, "y"), json_object_get_number(rotation_json, "z"));
     }
     if (scale_json) {
         transform_component->scale.x = json_object_get_number(scale_json, "x");
@@ -105,10 +104,7 @@ void parse_transform_component(Scene *scene, Entity entity, int component_id, JS
         transform_component->scale.z = json_object_get_number(scale_json, "z");
     }
     Matrix4 translation_matrix = mat4_create_translation_matrix(transform_component->position.x, transform_component->position.y, transform_component->position.z);
-    Matrix4 rotation_x_matrix = mat4_create_rotation_x_matrix(transform_component->rotation.x);
-    Matrix4 rotation_y_matrix = mat4_create_rotation_y_matrix(transform_component->rotation.y);
-    Matrix4 rotation_z_matrix = mat4_create_rotation_z_matrix(transform_component->rotation.z);
-    Matrix4 rotation_matrix = mat4_multiply(rotation_z_matrix, mat4_multiply(rotation_y_matrix, rotation_x_matrix));
+    Matrix4 rotation_matrix = quaternion_to_matrix4(transform_component->rotation);
     Matrix4 scale_matrix = mat4_create_scaling_matrix(transform_component->scale.x, transform_component->scale.y, transform_component->scale.z);
     transform_component->model_matrix = mat4_multiply(translation_matrix, mat4_multiply(rotation_matrix, scale_matrix));
 }
