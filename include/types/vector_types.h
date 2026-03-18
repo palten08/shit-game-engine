@@ -39,6 +39,17 @@ typedef struct {
 } Vector3f;
 
 /**
+ * @brief A specialized Vector3f that can be used for expressing R, G, B color channel values
+ * 
+ * 12 bytes
+ */
+typedef struct {
+    float r;
+    float g;
+    float b;
+} RGBVector3f;
+
+/**
  * @brief A 4D floating-point vector structure used for mathematical operations, containing four 4-byte float members: x, y, z, and w.
  * The w component is used for homogeneous coordinates, allowing for more complex transformations in 3D
  * 
@@ -50,5 +61,17 @@ typedef struct {
     float z; // 4-bytes
     float w; // 4-bytes
 } Vector4f;
+
+/**
+ * @brief A specialized Vector4f that can be used for expressing R, G, B, A color channel values
+ * 
+ * 16 bytes
+ */
+typedef struct {
+    float r; // 4-bytes
+    float g; // 4-bytes
+    float b; // 4-bytes
+    float a; // 4-bytes
+} RGBAVector4f;
 
 /** @} */ // End of Vectors group

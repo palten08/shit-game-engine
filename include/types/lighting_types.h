@@ -15,7 +15,7 @@
   */
 typedef struct {
     Vector3f direction; // 12 bytes
-    uint32_t color; // 4 bytes
+    RGBVector3f color; // 12 bytes
     float intensity; // 4 bytes
     float ambient_intensity; // 4 bytes
 } DirectionalLight;

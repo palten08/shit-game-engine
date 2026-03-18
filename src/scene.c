@@ -6,6 +6,7 @@
 #include "../include/ecs.h"
 #include "../include/obj_loader.h"
 #include "../include/logging.h"
+#include "../include/materials.h"
 
 Scene *load_scene_from_file(Scene *scene, const char *filename) {
     LOG_DEBUG("Begin scene loading function");
@@ -40,14 +41,46 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
         scene->directional_light.direction = vec3f_normalize((Vector3f){json_object_get_number(direction_json, "x"), json_object_get_number(direction_json, "y"), json_object_get_number(direction_json, "z")});
         JSON_Object *color_json = json_object_get_object(directional_light_json, "color");
         if (color_json) {
-            uint8_t r = (uint8_t)(json_object_get_number(color_json, "r") * 255.0f);
-            uint8_t g = (uint8_t)(json_object_get_number(color_json, "g") * 255.0f);
-            uint8_t b = (uint8_t)(json_object_get_number(color_json, "b") * 255.0f);
-            uint32_t packed_color = 0xFF000000 | (r << 16) | (g << 8) | b;
-            scene->directional_light.color = packed_color;
+            RGBVector3f color = {
+                json_object_get_number(color_json, "r"),
+                json_object_get_number(color_json, "g"),
+                json_object_get_number(color_json, "b")
+            };
+            scene->directional_light.color = color;
         }
         scene->directional_light.intensity = json_object_get_number(directional_light_json, "intensity");
         scene->directional_light.ambient_intensity = json_object_get_number(directional_light_json, "ambient_intensity");
+    }
+
+    LOG_DEBUG("Getting material array JSON");
+    JSON_Array *materials_array = json_object_get_array(asset_library_json, "materials");
+    if (materials_array) {
+        scene->asset_library.material_count = json_array_get_count(materials_array);
+        scene->asset_library.materials = malloc(sizeof(Material) * json_array_get_count(materials_array));
+        for (uint32_t i = 0; i < scene->asset_library.material_count; i++) {
+            JSON_Object *material_json = json_array_get_object(materials_array, i);
+            if (material_json) {
+                const char *file_path = json_object_get_string(material_json, "file_path");
+                const char *shading_model_raw_string = json_object_get_string(material_json, "shading_model");
+                ShadingModel shading_model = SHADING_FLAT; // Default to flat shading if no valid shading model is specified
+                if (shading_model_raw_string) {
+                    if (strcmp(shading_model_raw_string, "SHADING_FLAT") == 0) {
+                        shading_model = SHADING_FLAT;
+                    } else if (strcmp(shading_model_raw_string, "SHADING_PHONG") == 0) {
+                        shading_model = SHADING_PHONG;
+                    } else if (strcmp(shading_model_raw_string, "SHADING_PBR") == 0) {
+                        shading_model = SHADING_PBR;
+                    } else {
+                        LOG_WARNING("Invalid shading model specified for material in scene file, defaulting to flat shading");
+                    }
+                }
+                if (file_path) {
+                    Material loaded_material = load_material_from_mtl(file_path, shading_model);
+                    loaded_material.id = json_object_get_number(material_json, "id");
+                    scene->asset_library.materials[i] = loaded_material;
+                }
+            }
+        }
     }
 
     LOG_DEBUG("Getting mesh array JSON");
@@ -61,6 +94,7 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
                 const char *file_path = json_object_get_string(mesh_json, "file_path");
                 if (file_path) {
                     Mesh3D loaded_mesh = load_obj(file_path);
+                    loaded_mesh.id = json_object_get_number(mesh_json, "id");
                     if (loaded_mesh.triangle_count > 0) {
                         scene->asset_library.meshes[i] = loaded_mesh;
                     }
