@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vector_types.h"
+#include "material_types.h"
 
 /** @defgroup Render Render Structures
  *  @{
@@ -9,12 +10,17 @@
  /**
   * @brief A structure representing a renderable triangle
   * 
-  * 40 bytes
+  * 48 bytes
   */
 typedef struct {
+    RGBVector3f vertex_colors[3]; // 36 bytes
+    Vector3f world_space_vertex_normals[3]; // 36 bytes
+    Vector3f world_space_vertex_positions[3]; // 36 bytes
     Vector2i screen_positions[3]; // 24 bytes
+    Vector2f uv_coordinates[3]; // 24 bytes
     float depth_values[3]; // 12 bytes
-    uint32_t color; // 4 bytes
+    RGBVector3f flat_shading_color; // 12 bytes
+    Material *material; // 8 bytes
 } RenderTriangle;
 
 /**

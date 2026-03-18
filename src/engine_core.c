@@ -38,6 +38,8 @@ void engine_init(AppContext *app_context, EngineRunConfig *config) {
         LOG_INFO("GIF quality: %d | Centiseconds per frame: %d", gif_record_config.gif_quality, gif_record_config.centiseconds_per_frame);
         app_context->gif_config = gif_record_config;
         app_context->gif_pixels = malloc(gif_record_config.gif_width * gif_record_config.gif_height * 4);
+        app_context->gif_state = malloc(sizeof(MsfGifState));
+        memset(app_context->gif_state, 0, sizeof(MsfGifState));
         msf_gif_begin(app_context->gif_state, gif_record_config.gif_width, gif_record_config.gif_height);
     }
 
@@ -123,7 +125,7 @@ void engine_run(AppContext *app_context, Scene *loaded_scene) {
     app_context->rendering_pipeline_timer = SDL_GetPerformanceCounter();
     app_context->render_list = generate_render_list(loaded_scene, app_context);
     app_context->rasterizer_timer = SDL_GetPerformanceCounter();
-    render(app_context, &app_context->render_list);
+    render(app_context, &app_context->render_list, loaded_scene);
     app_context->update_end_timer = SDL_GetPerformanceCounter();
 }
 
@@ -143,6 +145,17 @@ void engine_frame_end(AppContext *app_context) {
 
 void engine_shutdown(AppContext *app_context) {
     LOG_INFO("Attempting to cleanly shut the engine down");
+    if (app_context->record_gif) {
+        MsfGifResult result = msf_gif_end(app_context->gif_state);
+        if (result.data) {
+            FILE * fp = fopen(app_context->gif_config.gif_path, "wb");
+            fwrite(result.data, result.dataSize, 1, fp);
+            fclose(fp);
+        }
+        msf_gif_free(result);
+        free(app_context->gif_pixels);
+        free(app_context->gif_state);
+    }
     destroy_thread_pool(&app_context->thread_pool);
     free(app_context->depth_buffer->depth_values);
     free(app_context->depth_buffer);

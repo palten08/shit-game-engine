@@ -51,7 +51,7 @@ static bool is_vertex_inside_frustum_plane(Vector4f vertex, enum FrustumPlane pl
  * @param plane The frustum plane to calculate the intersection with.
  * @return The intersection point as a Vector4f.
  */
-static Vector4f calculate_intersection(Vector4f start_vertex, Vector4f end_vertex, enum FrustumPlane plane) {
+static Vector4f calculate_intersection(Vector4f start_vertex, Vector4f end_vertex, enum FrustumPlane plane, float *out_t) {
     // Calculate the direction vector from the start vertex to the end vertex
     Vector4f direction = {end_vertex.x - start_vertex.x, end_vertex.y - start_vertex.y, end_vertex.z - start_vertex.z, end_vertex.w - start_vertex.w};
 
@@ -98,16 +98,42 @@ static Vector4f calculate_intersection(Vector4f start_vertex, Vector4f end_verte
             return start_vertex; // Invalid plane
     }
 
+    // Store the parameter t in the output variable
+    if (out_t) {
+        *out_t = t;
+    }
+
     // Calculate the intersection point using the parameter t
     Vector4f intersection = {start_vertex.x + t * direction.x, start_vertex.y + t * direction.y, start_vertex.z + t * direction.z, start_vertex.w + t * direction.w};
     return intersection;
 }
 
-ClippingResult clip_triangle(Vector4f clip_space_vertices[3]) {
+ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex_colors[3], Vector3f vertex_normals[3], Vector3f world_space_vertex_positions[3], Vector2f uv_coordinates[3]) {
     Vector4f vertex_index_buffer_a[9] = {clip_space_vertices[0], clip_space_vertices[1], clip_space_vertices[2]}; // Start with the original triangle vertices in the buffer
     Vector4f vertex_index_buffer_b[9]; // A second buffer to store intermediate results during clipping
     Vector4f *vertex_index_input = vertex_index_buffer_a; // Pointer to the current input buffer
     Vector4f *vertex_index_output = vertex_index_buffer_b; // Pointer to the current output buffer
+
+    RGBVector3f vertex_color_buffer_a[9] = {vertex_colors[0], vertex_colors[1], vertex_colors[2]}; // Start with the original vertex colors in the buffer
+    RGBVector3f vertex_color_buffer_b[9]; // A second buffer to store intermediate vertex colors during clipping
+    RGBVector3f *vertex_color_input = vertex_color_buffer_a;
+    RGBVector3f *vertex_color_output = vertex_color_buffer_b;
+
+    Vector3f vertex_normal_buffer_a[9] = {vertex_normals[0], vertex_normals[1], vertex_normals[2]}; // Start with the original vertex normals in the buffer
+    Vector3f vertex_normal_buffer_b[9]; // A second buffer to store intermediate vertex normals during clipping
+    Vector3f *vertex_normal_input = vertex_normal_buffer_a;
+    Vector3f *vertex_normal_output = vertex_normal_buffer_b;
+
+    Vector3f world_space_vertex_position_buffer_a[9] = {world_space_vertex_positions[0], world_space_vertex_positions[1], world_space_vertex_positions[2]};
+    Vector3f world_space_vertex_position_buffer_b[9];
+    Vector3f *world_space_vertex_position_input = world_space_vertex_position_buffer_a;
+    Vector3f *world_space_vertex_position_output = world_space_vertex_position_buffer_b;
+
+    Vector2f uv_coordinate_buffer_a[9] = {uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]};
+    Vector2f uv_coordinate_buffer_b[9];
+    Vector2f *uv_coordinate_input = uv_coordinate_buffer_a;
+    Vector2f *uv_coordinate_output = uv_coordinate_buffer_b;
+
     int input_count = 3;
 
     int output_vertex_count = 0;
@@ -115,16 +141,80 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3]) {
         for (int i = 0; i < input_count; i++) {
             int next_vertex_index = (i + 1) % input_count;
             if (is_vertex_inside_frustum_plane(vertex_index_input[i], frustum_plane) && is_vertex_inside_frustum_plane(vertex_index_input[next_vertex_index], frustum_plane)) {
+                int idx = output_vertex_count;
                 // Both vertices are inside the frustum plane, so we keep the next vertex
-                vertex_index_output[output_vertex_count++] = (Vector4f){vertex_index_input[next_vertex_index].x, vertex_index_input[next_vertex_index].y, vertex_index_input[next_vertex_index].z, vertex_index_input[next_vertex_index].w};
+                vertex_index_output[idx] = (Vector4f){vertex_index_input[next_vertex_index].x, vertex_index_input[next_vertex_index].y, vertex_index_input[next_vertex_index].z, vertex_index_input[next_vertex_index].w};
+                vertex_color_output[idx] = vertex_color_input[next_vertex_index];
+                vertex_normal_output[idx] = vertex_normal_input[next_vertex_index];
+                world_space_vertex_position_output[idx] = world_space_vertex_position_input[next_vertex_index];
+                uv_coordinate_output[idx] = uv_coordinate_input[next_vertex_index];
+                output_vertex_count++;
             } else if (is_vertex_inside_frustum_plane(vertex_index_input[i], frustum_plane) && !is_vertex_inside_frustum_plane(vertex_index_input[next_vertex_index], frustum_plane)) {
+                float t;
+                int idx = output_vertex_count;
                 // Calculate an intersection
-                Vector4f intersection = calculate_intersection(vertex_index_input[i], vertex_index_input[next_vertex_index], frustum_plane);
-                vertex_index_output[output_vertex_count++] = (Vector4f){intersection.x, intersection.y, intersection.z, intersection.w};
+                Vector4f intersection = calculate_intersection(vertex_index_input[i], vertex_index_input[next_vertex_index], frustum_plane, &t);
+                RGBVector3f resultant_color = {
+                    vertex_color_input[i].r + (vertex_color_input[next_vertex_index].r - vertex_color_input[i].r) * t,
+                    vertex_color_input[i].g + (vertex_color_input[next_vertex_index].g - vertex_color_input[i].g) * t,
+                    vertex_color_input[i].b + (vertex_color_input[next_vertex_index].b - vertex_color_input[i].b) * t
+                };
+                Vector3f resultant_normal = {
+                    vertex_normal_input[i].x + (vertex_normal_input[next_vertex_index].x - vertex_normal_input[i].x) * t,
+                    vertex_normal_input[i].y + (vertex_normal_input[next_vertex_index].y - vertex_normal_input[i].y) * t,
+                    vertex_normal_input[i].z + (vertex_normal_input[next_vertex_index].z - vertex_normal_input[i].z) * t
+                };
+                Vector3f resultant_world_space_vertex_position = {
+                    world_space_vertex_position_input[i].x + (world_space_vertex_position_input[next_vertex_index].x - world_space_vertex_position_input[i].x) * t,
+                    world_space_vertex_position_input[i].y + (world_space_vertex_position_input[next_vertex_index].y - world_space_vertex_position_input[i].y) * t,
+                    world_space_vertex_position_input[i].z + (world_space_vertex_position_input[next_vertex_index].z - world_space_vertex_position_input[i].z) * t
+                };
+                Vector2f resultant_uv = {
+                    uv_coordinate_input[i].x + (uv_coordinate_input[next_vertex_index].x - uv_coordinate_input[i].x) * t,
+                    uv_coordinate_input[i].y + (uv_coordinate_input[next_vertex_index].y - uv_coordinate_input[i].y) * t
+                };
+                vertex_index_output[idx] = (Vector4f){intersection.x, intersection.y, intersection.z, intersection.w};
+                vertex_color_output[idx] = resultant_color;
+                vertex_normal_output[idx] = resultant_normal;
+                world_space_vertex_position_output[idx] = resultant_world_space_vertex_position;
+                uv_coordinate_output[idx] = resultant_uv;
+                output_vertex_count++;
             } else if (!is_vertex_inside_frustum_plane(vertex_index_input[i], frustum_plane) && is_vertex_inside_frustum_plane(vertex_index_input[next_vertex_index], frustum_plane)) {
-                Vector4f intersection = calculate_intersection(vertex_index_input[i], vertex_index_input[next_vertex_index], frustum_plane);
-                vertex_index_output[output_vertex_count++] = (Vector4f){intersection.x, intersection.y, intersection.z, intersection.w};
-                vertex_index_output[output_vertex_count++] = (Vector4f){vertex_index_input[next_vertex_index].x, vertex_index_input[next_vertex_index].y, vertex_index_input[next_vertex_index].z, vertex_index_input[next_vertex_index].w};
+                float t;
+                Vector4f intersection = calculate_intersection(vertex_index_input[i], vertex_index_input[next_vertex_index], frustum_plane, &t);
+                RGBVector3f resultant_color = {
+                    vertex_color_input[i].r + (vertex_color_input[next_vertex_index].r - vertex_color_input[i].r) * t,
+                    vertex_color_input[i].g + (vertex_color_input[next_vertex_index].g - vertex_color_input[i].g) * t,
+                    vertex_color_input[i].b + (vertex_color_input[next_vertex_index].b - vertex_color_input[i].b) * t
+                };
+                Vector3f resultant_normal = {
+                    vertex_normal_input[i].x + (vertex_normal_input[next_vertex_index].x - vertex_normal_input[i].x) * t,
+                    vertex_normal_input[i].y + (vertex_normal_input[next_vertex_index].y - vertex_normal_input[i].y) * t,
+                    vertex_normal_input[i].z + (vertex_normal_input[next_vertex_index].z - vertex_normal_input[i].z) * t
+                };
+                Vector3f resultant_world_space_vertex_position = {
+                    world_space_vertex_position_input[i].x + (world_space_vertex_position_input[next_vertex_index].x - world_space_vertex_position_input[i].x) * t,
+                    world_space_vertex_position_input[i].y + (world_space_vertex_position_input[next_vertex_index].y - world_space_vertex_position_input[i].y) * t,
+                    world_space_vertex_position_input[i].z + (world_space_vertex_position_input[next_vertex_index].z - world_space_vertex_position_input[i].z) * t
+                };
+                Vector2f resultant_uv = {
+                    uv_coordinate_input[i].x + (uv_coordinate_input[next_vertex_index].x - uv_coordinate_input[i].x) * t,
+                    uv_coordinate_input[i].y + (uv_coordinate_input[next_vertex_index].y - uv_coordinate_input[i].y) * t
+                };
+                int idx = output_vertex_count;
+                vertex_index_output[idx] = (Vector4f){intersection.x, intersection.y, intersection.z, intersection.w};
+                vertex_color_output[idx] = resultant_color;
+                vertex_normal_output[idx] = resultant_normal;
+                world_space_vertex_position_output[idx] = resultant_world_space_vertex_position;
+                uv_coordinate_output[idx] = resultant_uv;
+                output_vertex_count++;
+                idx = output_vertex_count;
+                vertex_index_output[idx] = (Vector4f){vertex_index_input[next_vertex_index].x, vertex_index_input[next_vertex_index].y, vertex_index_input[next_vertex_index].z, vertex_index_input[next_vertex_index].w};
+                vertex_color_output[idx] = vertex_color_input[next_vertex_index];
+                vertex_normal_output[idx] = vertex_normal_input[next_vertex_index];
+                world_space_vertex_position_output[idx] = world_space_vertex_position_input[next_vertex_index];
+                uv_coordinate_output[idx] = uv_coordinate_input[next_vertex_index];
+                output_vertex_count++;
             } else {
                 // Both vertices are outside the frustum plane, so we discard the edge
             }   
@@ -133,8 +223,23 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3]) {
         Vector4f *temp = vertex_index_input;
         vertex_index_input = vertex_index_output;
         vertex_index_output = temp;
+        RGBVector3f *temp_color = vertex_color_input;
+        vertex_color_input = vertex_color_output;
+        vertex_color_output = temp_color;
+        Vector3f *temp_normal = vertex_normal_input;
+        vertex_normal_input = vertex_normal_output;
+        vertex_normal_output = temp_normal;
+        Vector3f *temp_pos = world_space_vertex_position_input;
+        world_space_vertex_position_input = world_space_vertex_position_output;
+        world_space_vertex_position_output = temp_pos;
+        Vector2f *temp_uv = uv_coordinate_input;
+        uv_coordinate_input = uv_coordinate_output;
+        uv_coordinate_output = temp_uv;
         input_count = output_vertex_count;
         output_vertex_count = 0;
+        if (input_count == 0) {
+            break; // The triangle is completely outside the view frustum, so we can stop clipping
+        }
     }
 
     // The final clipped vertices are now in the input buffer
@@ -142,6 +247,10 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3]) {
     result.vertex_count = input_count;
     for (int i = 0; i < input_count; i++) {
         result.vertices[i] = vertex_index_input[i];
+        result.vertex_colors[i] = vertex_color_input[i];
+        result.vertex_normals[i] = vertex_normal_input[i];
+        result.world_space_vertex_positions[i] = world_space_vertex_position_input[i];
+        result.uv_coordinates[i] = uv_coordinate_input[i];
     }
     return result;
 }

@@ -20,3 +20,4 @@
 #include "engine_core.h"
 #include "logging.h"
 #include "quaternion_operations.h"
+#include "materials.h"
