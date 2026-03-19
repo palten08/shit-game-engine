@@ -95,6 +95,8 @@ Material load_material_from_mtl(const char *file_name, ShadingModel shading_mode
             }
             loaded_material.diffuse_texture = malloc(sizeof(Texture));
 
+            LOG_DEBUG("Opening texture file: %s", texture_file_path);
+
             int width, height, channels;
             unsigned char *image_data = stbi_load(texture_file_path, &width, &height, &channels, 4);
             if (!image_data) {

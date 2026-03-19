@@ -2,6 +2,28 @@
 #include "../include/input_actions.h"
 #include "../include/app.h"
 #include "../include/logging.h"
+#include "../include/types.h"
+
+static float get_binding_value(InputBinding *binding, const Uint8 *keyboard, Uint32 mouse, InputActionMap *input_action_map) {
+    switch (binding->type) {
+        case INPUT_KEYBOARD:
+            return binding->code != SDL_SCANCODE_UNKNOWN && keyboard[binding->code] ? 1.0f : 0.0f;
+        case INPUT_MOUSE_BUTTON:
+            return (mouse & SDL_BUTTON(binding->code)) ? 1.0f : 0.0f;
+        case INPUT_GAMEPAD_BUTTON:
+            return 0.0f; // TODO
+        case INPUT_MOUSE_SCROLL_UP:
+            return input_action_map->scroll_up_this_frame ? 1.0f : 0.0f;
+        case INPUT_MOUSE_SCROLL_DOWN:
+            return input_action_map->scroll_down_this_frame ? 1.0f : 0.0f;
+        case INPUT_MOUSE_DELTA_X:
+            return (float)input_action_map->mouse_delta_x;
+        case INPUT_MOUSE_DELTA_Y:
+            return (float)input_action_map->mouse_delta_y;
+        default:
+            return 0.0f;
+    }
+}
 
 /**
  * @brief Registers a new button input action in the provided InputActionMap
@@ -111,6 +133,10 @@ static bool is_binding_active(InputBinding *binding, const Uint8 *keyboard, Uint
             return input_action_map->scroll_up_this_frame;
         case INPUT_MOUSE_SCROLL_DOWN:
             return input_action_map->scroll_down_this_frame;
+        case INPUT_MOUSE_DELTA_X:
+            return input_action_map->mouse_delta_x != 0;
+        case INPUT_MOUSE_DELTA_Y:
+            return input_action_map->mouse_delta_y != 0;
         default:
             return false;
     }
@@ -129,6 +155,11 @@ void update_input_actions(InputActionMap *input_action_map, AppContext *app_cont
     input_action_map->scroll_down_this_frame = app_context->scroll_wheel_delta_this_frame < 0;
     app_context->scroll_wheel_delta_this_frame = 0.0f;
 
+    int mouse_delta_x, mouse_delta_y;
+    SDL_GetRelativeMouseState(&mouse_delta_x, &mouse_delta_y);
+    input_action_map->mouse_delta_x = mouse_delta_x;
+    input_action_map->mouse_delta_y = mouse_delta_y;
+
     for (int i = 0; i < MAX_INPUT_ACTIONS; i++) {
         switch (input_action_map->input_actions[i].type) {
             case ACTION_TYPE_BUTTON: {
@@ -146,10 +177,10 @@ void update_input_actions(InputActionMap *input_action_map, AppContext *app_cont
                 input_action_map->input_actions[i].axis_2d.previously_active = input_action_map->input_actions[i].axis_2d.currently_active;
                 float x = 0.0f, y = 0.0f;
                 for (int j = 0; j < 4; j++) {
-                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.positive_x[j], keyboard, mouse, input_action_map)) x += 1.0f;
-                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.negative_x[j], keyboard, mouse, input_action_map)) x -= 1.0f;
-                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.positive_y[j], keyboard, mouse, input_action_map)) y += 1.0f;
-                    if (is_binding_active(&input_action_map->input_actions[i].axis_2d.negative_y[j], keyboard, mouse, input_action_map)) y -= 1.0f;
+                    x += get_binding_value(&input_action_map->input_actions[i].axis_2d.positive_x[j], keyboard, mouse, input_action_map);
+                    x -= get_binding_value(&input_action_map->input_actions[i].axis_2d.negative_x[j], keyboard, mouse, input_action_map);
+                    y += get_binding_value(&input_action_map->input_actions[i].axis_2d.positive_y[j], keyboard, mouse, input_action_map);
+                    y -= get_binding_value(&input_action_map->input_actions[i].axis_2d.negative_y[j], keyboard, mouse, input_action_map);
                 }
                 float len = sqrtf(x * x + y * y);
                 if (len > 0.0f) { x /= len; y /= len; }
@@ -161,10 +192,10 @@ void update_input_actions(InputActionMap *input_action_map, AppContext *app_cont
                 input_action_map->input_actions[i].axis_1d.previously_active = input_action_map->input_actions[i].axis_1d.currently_active;
                 float val = 0.0f;
                 for (int j = 0; j < 4; j++) {
-                    if (is_binding_active(&input_action_map->input_actions[i].axis_1d.positive[j], keyboard, mouse, input_action_map)) val += 1.0f;
-                    if (is_binding_active(&input_action_map->input_actions[i].axis_1d.negative[j], keyboard, mouse, input_action_map)) val -= 1.0f;
+                    val += get_binding_value(&input_action_map->input_actions[i].axis_1d.positive[j], keyboard, mouse, input_action_map);
+                    val -= get_binding_value(&input_action_map->input_actions[i].axis_1d.negative[j], keyboard, mouse, input_action_map);
                 }
-                input_action_map->input_actions[i].axis_1d.value = fminf(1.0f, fmaxf(-1.0f, val));
+                input_action_map->input_actions[i].axis_1d.value = val;
                 input_action_map->input_actions[i].axis_1d.currently_active = (val != 0.0f);
                 break;
             }
