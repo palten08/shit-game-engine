@@ -95,6 +95,7 @@ Scene *load_scene_from_file(Scene *scene, const char *filename) {
                 if (file_path) {
                     Mesh3D loaded_mesh = load_obj(file_path);
                     loaded_mesh.id = json_object_get_number(mesh_json, "id");
+                    loaded_mesh.material_id = json_object_get_number(mesh_json, "material_id");
                     if (loaded_mesh.triangle_count > 0) {
                         scene->asset_library.meshes[i] = loaded_mesh;
                     }

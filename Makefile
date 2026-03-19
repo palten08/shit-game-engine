@@ -1,5 +1,12 @@
 CC      = gcc
-CFLAGS  = -g -Wall -Wextra -Iinclude $(shell sdl2-config --cflags) -msse4.1
+BUILD   ?= debug
+
+ifeq ($(BUILD),release)
+CFLAGS   = -O3 -Wall -Wextra -Iinclude $(shell sdl2-config --cflags) -msse4.1
+else
+CFLAGS   = -g -Wall -Wextra -Iinclude $(shell sdl2-config --cflags) -msse4.1
+endif
+
 SRC     = $(wildcard src/*.c)
 OBJ     = $(SRC:src/%.c=build/%.o)
 LDFLAGS = $(shell sdl2-config --libs) -lm -lpthread

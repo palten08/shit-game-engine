@@ -19,6 +19,7 @@ typedef struct {
     Vector2i screen_positions[3]; // 24 bytes
     Vector2f uv_coordinates[3]; // 24 bytes
     float depth_values[3]; // 12 bytes
+    float perspective_w_values[3]; // 12 bytes
     RGBVector3f flat_shading_color; // 12 bytes
     Material *material; // 8 bytes
 } RenderTriangle;

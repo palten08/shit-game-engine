@@ -8,6 +8,7 @@
 #include "../include/coordinates.h"
 #include "../include/logging.h"
 #include "../include/utils.h"
+#include "../include/matrix_operations.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -280,6 +281,24 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
     __m128 vertex_2_uv_u = _mm_set1_ps(triangle->uv_coordinates[2].x);
     __m128 vertex_2_uv_v = _mm_set1_ps(triangle->uv_coordinates[2].y);
 
+    __m128 vertex_0_perspective_w = _mm_set1_ps(triangle->perspective_w_values[0]);
+    __m128 vertex_1_perspective_w = _mm_set1_ps(triangle->perspective_w_values[1]);
+    __m128 vertex_2_perspective_w = _mm_set1_ps(triangle->perspective_w_values[2]);
+
+    // Something about 1/w
+    __m128 vertex_0_one_over_perspective_w = _mm_div_ps(_mm_set1_ps(1.0f), vertex_0_perspective_w);
+    __m128 vertex_1_one_over_perspective_w = _mm_div_ps(_mm_set1_ps(1.0f), vertex_1_perspective_w);
+    __m128 vertex_2_one_over_perspective_w = _mm_div_ps(_mm_set1_ps(1.0f), vertex_2_perspective_w);
+
+    // Divide each vertex's UV coordinates by its clip-space w for perspective-correct interpolation
+    vertex_0_uv_u = _mm_div_ps(vertex_0_uv_u, vertex_0_perspective_w);
+    vertex_0_uv_v = _mm_div_ps(vertex_0_uv_v, vertex_0_perspective_w);
+    vertex_1_uv_u = _mm_div_ps(vertex_1_uv_u, vertex_1_perspective_w);
+    vertex_1_uv_v = _mm_div_ps(vertex_1_uv_v, vertex_1_perspective_w);
+    vertex_2_uv_u = _mm_div_ps(vertex_2_uv_u, vertex_2_perspective_w);
+    vertex_2_uv_v = _mm_div_ps(vertex_2_uv_v, vertex_2_perspective_w);
+
+
     // Compute and normalize the light direction (pointing toward the light source)
     float light_direction_x = -scene->directional_light.direction.x;
     float light_direction_y = -scene->directional_light.direction.y;
@@ -381,6 +400,9 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
                         vertex_1_uv_u, vertex_1_uv_v,
                         vertex_2_uv_u, vertex_2_uv_v);
 
+                    float perspective_correction_factor[4];
+                    _mm_storeu_ps(perspective_correction_factor, _mm_div_ps(_mm_set1_ps(1.0f), _mm_add_ps(_mm_add_ps(_mm_mul_ps(barycentric_0, vertex_0_one_over_perspective_w), _mm_mul_ps(barycentric_1, vertex_1_one_over_perspective_w)), _mm_mul_ps(barycentric_2, vertex_2_one_over_perspective_w))));
+
 
                     for (int i = 0; i < 4; i++) {
                         if ((depth_test_mask & (1 << i)) && (block_x + i <= bounding_box_max_x)) {
@@ -388,6 +410,10 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
                             // If the material has a texture we sample it to get the effect it has on the diffuse color for this pixel
                             if (triangle->material && triangle->material->diffuse_texture) {
                                 Texture *diffuse_texture = triangle->material->diffuse_texture;
+
+                                // Recover the correct UV by dividing by the interpolated UV's perspective correction factor (which is 1/w interpolated across the triangle)
+                                pixel_uv_u[i] *= perspective_correction_factor[i];
+                                pixel_uv_v[i] *= perspective_correction_factor[i];
 
                                 // Wrap UVs to 0-1 range
                                 float wrapped_u = pixel_uv_u[i] - floorf(pixel_uv_u[i]);
@@ -475,12 +501,19 @@ void fill_triangle(RenderTriangle *triangle, AppContext *app_context, int tile_x
                         vertex_1_uv_u, vertex_1_uv_v,
                         vertex_2_uv_u, vertex_2_uv_v);
 
+                    float perspective_correction_factor[4];
+                    _mm_storeu_ps(perspective_correction_factor, _mm_div_ps(_mm_set1_ps(1.0f), _mm_add_ps(_mm_add_ps(_mm_mul_ps(barycentric_0, vertex_0_one_over_perspective_w), _mm_mul_ps(barycentric_1, vertex_1_one_over_perspective_w)), _mm_mul_ps(barycentric_2, vertex_2_one_over_perspective_w))));
+
                     for (int i = 0; i < 4; i++) {
                         if ((combined_mask & (1 << i)) && (block_x + i <= bounding_box_max_x)) {
                             app_context->depth_buffer->depth_values[frame_buffer_index + i] = pixel_depths[i];
                             // If the material has a texture we sample it to get the effect it has on the diffuse color for this pixel
                             if (triangle->material && triangle->material->diffuse_texture) {
                                 Texture *diffuse_texture = triangle->material->diffuse_texture;
+
+                                // Recover the correct UV by dividing by the interpolated UV's perspective correction factor (which is 1/w interpolated across the triangle)
+                                pixel_uv_u[i] *= perspective_correction_factor[i];
+                                pixel_uv_v[i] *= perspective_correction_factor[i];
 
                                 // Wrap UVs to 0-1 range
                                 float wrapped_u = pixel_uv_u[i] - floorf(pixel_uv_u[i]);
@@ -543,6 +576,25 @@ void rasterizer_worker(void *arg) {
         fill_triangle(triangle, job->app_context, job->tile_x, job->tile_y, job->tile_width, job->tile_height, job->scene);
     }
     return;
+}
+
+void draw_debug_line_3d(AppContext *app_context, Scene *scene, Vector3f start, Vector3f end, RGBVector3f color) {
+    // Transform to clip space
+    Vector4f start_clip = mat4_multiply_vec4(scene->virtual_camera.perspective_projection_matrix, mat4_multiply_vec4(scene->virtual_camera.view_matrix, (Vector4f){start.x, start.y, start.z, 1.0f}));
+    Vector4f end_clip = mat4_multiply_vec4(scene->virtual_camera.perspective_projection_matrix, mat4_multiply_vec4(scene->virtual_camera.view_matrix, (Vector4f){end.x, end.y, end.z, 1.0f}));
+
+    // Skip if behind camera
+    if (start_clip.w <= 0 || end_clip.w <= 0) return;
+
+    // Perspective divide to NDC
+    Vector2f start_ndc = { start_clip.x / start_clip.w, start_clip.y / start_clip.w };
+    Vector2f end_ndc = { end_clip.x / end_clip.w, end_clip.y / end_clip.w };
+
+    // NDC to screen
+    Vector2i start_screen = convert_normalized_device_coordinates_to_screen_coordinates(start_ndc, app_context->window_resolution.x, app_context->window_resolution.y);
+    Vector2i end_screen = convert_normalized_device_coordinates_to_screen_coordinates(end_ndc, app_context->window_resolution.x, app_context->window_resolution.y);
+
+    draw_line_between_coordinates(app_context, start_screen.x, start_screen.y, end_screen.x, end_screen.y, color);
 }
 
 int render(AppContext *app_context, RenderList *render_list, Scene *scene) {
@@ -609,6 +661,21 @@ int render(AppContext *app_context, RenderList *render_list, Scene *scene) {
     }
 
     thread_pool_wait_for_completion(&app_context->thread_pool);
+
+    // Temporary to visualize which way the light direction is going
+    Vector3f light_end = {0, 5, 0};  // point near the scene
+    Vector3f light_origin = {
+        light_end.x - scene->directional_light.direction.x * 3.0f,
+        light_end.y - scene->directional_light.direction.y * 3.0f,
+        light_end.z - scene->directional_light.direction.z * 3.0f
+    };
+    Vector3f mid = {
+        (light_origin.x + light_end.x) * 0.5f,
+        (light_origin.y + light_end.y) * 0.5f,
+        (light_origin.z + light_end.z) * 0.5f
+    };
+    draw_debug_line_3d(app_context, scene, light_origin, mid, (RGBVector3f){1.0f, 1.0f, 0.0f});  // yellow = source
+    draw_debug_line_3d(app_context, scene, mid, light_end, (RGBVector3f){1.0f, 0.0f, 0.0f});     // red = destination
 
     SDL_UnlockTexture(app_context->texture);
     SDL_RenderCopy(app_context->renderer, app_context->texture, NULL, NULL);

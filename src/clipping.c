@@ -108,7 +108,7 @@ static Vector4f calculate_intersection(Vector4f start_vertex, Vector4f end_verte
     return intersection;
 }
 
-ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex_colors[3], Vector3f vertex_normals[3], Vector3f world_space_vertex_positions[3], Vector2f uv_coordinates[3]) {
+ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex_colors[3], Vector3f vertex_normals[3], Vector3f world_space_vertex_positions[3], Vector2f uv_coordinates[3], float perspective_w_values[3]) {
     Vector4f vertex_index_buffer_a[9] = {clip_space_vertices[0], clip_space_vertices[1], clip_space_vertices[2]}; // Start with the original triangle vertices in the buffer
     Vector4f vertex_index_buffer_b[9]; // A second buffer to store intermediate results during clipping
     Vector4f *vertex_index_input = vertex_index_buffer_a; // Pointer to the current input buffer
@@ -134,6 +134,11 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex
     Vector2f *uv_coordinate_input = uv_coordinate_buffer_a;
     Vector2f *uv_coordinate_output = uv_coordinate_buffer_b;
 
+    float perspective_w_buffer_a[9] = {perspective_w_values[0], perspective_w_values[1], perspective_w_values[2]};
+    float perspective_w_buffer_b[9];
+    float *perspective_w_input = perspective_w_buffer_a;
+    float *perspective_w_output = perspective_w_buffer_b;
+
     int input_count = 3;
 
     int output_vertex_count = 0;
@@ -148,6 +153,7 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex
                 vertex_normal_output[idx] = vertex_normal_input[next_vertex_index];
                 world_space_vertex_position_output[idx] = world_space_vertex_position_input[next_vertex_index];
                 uv_coordinate_output[idx] = uv_coordinate_input[next_vertex_index];
+                perspective_w_output[idx] = perspective_w_input[next_vertex_index];
                 output_vertex_count++;
             } else if (is_vertex_inside_frustum_plane(vertex_index_input[i], frustum_plane) && !is_vertex_inside_frustum_plane(vertex_index_input[next_vertex_index], frustum_plane)) {
                 float t;
@@ -173,11 +179,13 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex
                     uv_coordinate_input[i].x + (uv_coordinate_input[next_vertex_index].x - uv_coordinate_input[i].x) * t,
                     uv_coordinate_input[i].y + (uv_coordinate_input[next_vertex_index].y - uv_coordinate_input[i].y) * t
                 };
+                float resultant_perspective_w = perspective_w_input[i] + (perspective_w_input[next_vertex_index] - perspective_w_input[i]) * t;
                 vertex_index_output[idx] = (Vector4f){intersection.x, intersection.y, intersection.z, intersection.w};
                 vertex_color_output[idx] = resultant_color;
                 vertex_normal_output[idx] = resultant_normal;
                 world_space_vertex_position_output[idx] = resultant_world_space_vertex_position;
                 uv_coordinate_output[idx] = resultant_uv;
+                perspective_w_output[idx] = resultant_perspective_w;
                 output_vertex_count++;
             } else if (!is_vertex_inside_frustum_plane(vertex_index_input[i], frustum_plane) && is_vertex_inside_frustum_plane(vertex_index_input[next_vertex_index], frustum_plane)) {
                 float t;
@@ -201,12 +209,14 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex
                     uv_coordinate_input[i].x + (uv_coordinate_input[next_vertex_index].x - uv_coordinate_input[i].x) * t,
                     uv_coordinate_input[i].y + (uv_coordinate_input[next_vertex_index].y - uv_coordinate_input[i].y) * t
                 };
+                float resultant_perspective_w = perspective_w_input[i] + (perspective_w_input[next_vertex_index] - perspective_w_input[i]) * t;
                 int idx = output_vertex_count;
                 vertex_index_output[idx] = (Vector4f){intersection.x, intersection.y, intersection.z, intersection.w};
                 vertex_color_output[idx] = resultant_color;
                 vertex_normal_output[idx] = resultant_normal;
                 world_space_vertex_position_output[idx] = resultant_world_space_vertex_position;
                 uv_coordinate_output[idx] = resultant_uv;
+                perspective_w_output[idx] = resultant_perspective_w;
                 output_vertex_count++;
                 idx = output_vertex_count;
                 vertex_index_output[idx] = (Vector4f){vertex_index_input[next_vertex_index].x, vertex_index_input[next_vertex_index].y, vertex_index_input[next_vertex_index].z, vertex_index_input[next_vertex_index].w};
@@ -214,6 +224,7 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex
                 vertex_normal_output[idx] = vertex_normal_input[next_vertex_index];
                 world_space_vertex_position_output[idx] = world_space_vertex_position_input[next_vertex_index];
                 uv_coordinate_output[idx] = uv_coordinate_input[next_vertex_index];
+                perspective_w_output[idx] = perspective_w_input[next_vertex_index];
                 output_vertex_count++;
             } else {
                 // Both vertices are outside the frustum plane, so we discard the edge
@@ -235,6 +246,9 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex
         Vector2f *temp_uv = uv_coordinate_input;
         uv_coordinate_input = uv_coordinate_output;
         uv_coordinate_output = temp_uv;
+        float *temp_perspective_w = perspective_w_input;
+        perspective_w_input = perspective_w_output;
+        perspective_w_output = temp_perspective_w;
         input_count = output_vertex_count;
         output_vertex_count = 0;
         if (input_count == 0) {
@@ -251,6 +265,7 @@ ClippingResult clip_triangle(Vector4f clip_space_vertices[3], RGBVector3f vertex
         result.vertex_normals[i] = vertex_normal_input[i];
         result.world_space_vertex_positions[i] = world_space_vertex_position_input[i];
         result.uv_coordinates[i] = uv_coordinate_input[i];
+        result.perspective_w_values[i] = perspective_w_input[i];
     }
     return result;
 }

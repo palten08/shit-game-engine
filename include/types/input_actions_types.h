@@ -9,7 +9,7 @@
 #define MAX_INPUT_ACTIONS 128
 
 typedef struct {
-    enum { INPUT_KEYBOARD, INPUT_MOUSE_BUTTON, INPUT_GAMEPAD_BUTTON, INPUT_MOUSE_SCROLL_UP, INPUT_MOUSE_SCROLL_DOWN } type;
+    enum { INPUT_KEYBOARD, INPUT_MOUSE_BUTTON, INPUT_GAMEPAD_BUTTON, INPUT_MOUSE_SCROLL_UP, INPUT_MOUSE_SCROLL_DOWN, INPUT_MOUSE_DELTA_X, INPUT_MOUSE_DELTA_Y } type;
     int code;
 } InputBinding;
 
@@ -59,7 +59,9 @@ typedef struct {
  */
 typedef struct {
     InputAction input_actions[MAX_INPUT_ACTIONS];
-    bool scroll_up_this_frame;
+    int mouse_delta_x;
+    int mouse_delta_y;
+    bool scroll_up_this_frame; 
     bool scroll_down_this_frame;
 } InputActionMap;
 

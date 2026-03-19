@@ -47,11 +47,13 @@ void rendering_pipeline_worker(void *arg) {
             Vector3f world_space_vertex_positions[3];
             Vector3f world_space_vertex_normals[3];
             Vector2f uv_coordinates[3];
+            float perspective_w_values[3];
             for (int v = 0; v < 3; v++) {
                 Vector4f world_space_vertex = mat4_multiply_vec4(transform->model_matrix, (Vector4f){mesh_data->triangles[t].vertices[v].position.x, mesh_data->triangles[t].vertices[v].position.y, mesh_data->triangles[t].vertices[v].position.z, 1.0f});
                 Vector4f view_space_vertex = mat4_multiply_vec4(job->scene->virtual_camera.view_matrix, world_space_vertex);
                 clip_space_vertices[v] = mat4_multiply_vec4(job->scene->virtual_camera.perspective_projection_matrix, view_space_vertex);
                 world_space_vertex_positions[v] = (Vector3f){world_space_vertex.x, world_space_vertex.y, world_space_vertex.z};
+                perspective_w_values[v] = clip_space_vertices[v].w;
                 uv_coordinates[v] = mesh_data->triangles[t].vertices[v].uv;
             }
 
@@ -118,7 +120,7 @@ void rendering_pipeline_worker(void *arg) {
             }
 
             // Perform clipping against the view frustum planes
-            ClippingResult clipping_result = clip_triangle(clip_space_vertices, vertex_colors, world_space_vertex_normals, world_space_vertex_positions, uv_coordinates);
+            ClippingResult clipping_result = clip_triangle(clip_space_vertices, vertex_colors, world_space_vertex_normals, world_space_vertex_positions, uv_coordinates, perspective_w_values);
 
             for (int c = 0; c < clipping_result.vertex_count - 2; c++) {
                 RenderTriangle render_triangle;
@@ -145,6 +147,9 @@ void rendering_pipeline_worker(void *arg) {
                 render_triangle.uv_coordinates[0] = clipping_result.uv_coordinates[0];
                 render_triangle.uv_coordinates[1] = clipping_result.uv_coordinates[c + 1];
                 render_triangle.uv_coordinates[2] = clipping_result.uv_coordinates[c + 2];
+                render_triangle.perspective_w_values[0] = clipping_result.perspective_w_values[0];
+                render_triangle.perspective_w_values[1] = clipping_result.perspective_w_values[c + 1];
+                render_triangle.perspective_w_values[2] = clipping_result.perspective_w_values[c + 2];
 
                 if (job->triangle_count >= initial_triangle_capacity) {
                     initial_triangle_capacity *= 2;
