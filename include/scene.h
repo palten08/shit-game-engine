@@ -9,6 +9,9 @@
 #define MAX_SYSTEMS 32
 #define MAX_COMPONENTS 24
 
+#define MAX_MATERIALS 256
+#define MAX_MESHES 256
+
 /**
  * @brief A structure representing a scene, including its entities and components.
  */
@@ -25,5 +28,52 @@ typedef struct Scene {
     EntityManager entity_manager; // 4 bytes
 } Scene;
 
+typedef struct {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t material_count;
+    uint32_t mesh_count;
+    uint32_t entity_count;
+} SceneFileHeader;
+
+typedef struct {
+    Vector3f direction;
+    Vector3f color;
+    float intensity;
+    float ambient_intensity;
+} SceneFileDirectionalLight;
+
+typedef struct {
+    Vector3f position;
+    Vector3f rotation;
+    Vector3f look_target;
+    float aspect_ratio;
+    float field_of_view;
+    float near_plane;
+    float far_plane;
+} SceneFileCamera;
+
+typedef struct {
+    char *material_name;
+    char *mesh_name;
+    char *file_path;
+} SceneFileMesh;
+
+typedef struct {
+    ShadingModel shading_model;
+    char *material_name;
+    char *file_path;
+} SceneFileMaterial;
+
+typedef struct {
+    char *entity_name;
+    uint32_t component_count;
+    struct {
+        char *component_name;
+        uint32_t data_size;
+        void *data;
+    } *components;
+} SceneFileEntity;
+
 Scene initialize_scene();
-Scene *load_scene_from_file(Scene *scene, const char *filename);
+Scene *load_scene_from_binary(const char *filename, Scene *scene);

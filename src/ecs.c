@@ -80,41 +80,53 @@ void run_systems(Scene *scene, AppContext *app_context) {
     }
 }
 
-void parse_transform_component(Scene *scene, Entity entity, int component_id, JSON_Object *json) {
+void parse_transform_component(Scene *scene, Entity entity, int component_id, void *data) {
     LOG_DEBUG("Parsing transform component on entity %d", entity);
     TransformComponent *transform_component = get_component(scene, component_id, entity);
     if (!transform_component) {
         LOG_WARNING("Failed to get the transform component on entity %d", entity);
         return; // Failed to get the component
     }
-    JSON_Object *position_json = json_object_get_object(json, "position");
-    JSON_Object *rotation_json = json_object_get_object(json, "rotation");
-    JSON_Object *scale_json = json_object_get_object(json, "scale");
-    if (position_json) {
-        transform_component->position.x = json_object_get_number(position_json, "x");
-        transform_component->position.y = json_object_get_number(position_json, "y");
-        transform_component->position.z = json_object_get_number(position_json, "z");
-    }
-    if (rotation_json) {
-        transform_component->rotation = quaternion_from_euler_angles(json_object_get_number(rotation_json, "x"), json_object_get_number(rotation_json, "y"), json_object_get_number(rotation_json, "z"));
-    }
-    if (scale_json) {
-        transform_component->scale.x = json_object_get_number(scale_json, "x");
-        transform_component->scale.y = json_object_get_number(scale_json, "y");
-        transform_component->scale.z = json_object_get_number(scale_json, "z");
-    }
+
+    float *floats = (float *)data;
+    LOG_DEBUG("Transform raw data: pos=(%f, %f, %f) rot=(%f, %f, %f) scale=(%f, %f, %f)",
+        floats[0], floats[1], floats[2],
+        floats[3], floats[4], floats[5],
+        floats[6], floats[7], floats[8]);
+    transform_component->position = (Vector3f){ floats[0], floats[1], floats[2] };
+    // Blender exports transforms in Euler angles
+    float roll = floats[3];
+    float pitch = floats[4];
+    float yaw = floats[5];
+    transform_component->rotation = quaternion_from_euler_angles(roll, pitch, yaw);
+
+    transform_component->scale = (Vector3f){ floats[6], floats[7], floats[8] };
+
     Matrix4 translation_matrix = mat4_create_translation_matrix(transform_component->position.x, transform_component->position.y, transform_component->position.z);
     Matrix4 rotation_matrix = quaternion_to_matrix4(transform_component->rotation);
     Matrix4 scale_matrix = mat4_create_scaling_matrix(transform_component->scale.x, transform_component->scale.y, transform_component->scale.z);
     transform_component->model_matrix = mat4_multiply(translation_matrix, mat4_multiply(rotation_matrix, scale_matrix));
 }
 
-void parse_mesh_component(Scene *scene, Entity entity, int component_id, JSON_Object *json) {
+void parse_mesh_component(Scene *scene, Entity entity, int component_id, void *data) {
     LOG_DEBUG("Parsing mesh component on entity %d", entity);
     MeshComponent *mesh_component = get_component(scene, component_id, entity);
     if (!mesh_component) {
         LOG_WARNING("Failed to get the mesh component on entity %d", entity);
         return; // Failed to get the component
     }
-    mesh_component->mesh_id = (int)json_object_get_number(json, "mesh_id");
+    uint32_t name_length;
+    memcpy(&name_length, data, sizeof(uint32_t));
+
+    char mesh_name[256] = {0};
+    memcpy(mesh_name, (char *)data + sizeof(uint32_t), name_length);
+    mesh_component->mesh_id = -1;
+    for (uint32_t i = 0; i < scene->asset_library.mesh_count; i++) {
+        if (strcmp(scene->asset_library.meshes[i].name, mesh_name) == 0) {
+            mesh_component->mesh_id = i;
+            return;
+        }
+    }
+    LOG_WARNING("Mesh '%s' not found in asset library", mesh_name);
+    return;
 }

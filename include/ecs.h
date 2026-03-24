@@ -11,5 +11,5 @@ int register_system(Scene *scene, void (*system_function)(Scene *, AppContext *)
 void *get_system(Scene *scene, int system_id);
 void run_systems(Scene *scene, AppContext *app_context);
 
-void parse_transform_component(Scene *scene, Entity entity, int component_id, JSON_Object *json);
-void parse_mesh_component(Scene *scene, Entity entity, int component_id, JSON_Object *json);
+void parse_transform_component(Scene *scene, Entity entity, int component_id, void *data);
+void parse_mesh_component(Scene *scene, Entity entity, int component_id, void *data);

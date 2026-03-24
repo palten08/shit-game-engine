@@ -198,7 +198,7 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
     RenderList render_list = {0};
     bool allocation_failed = false;
     for (int i = 0; i < actual_job_count; i++) {
-        if (jobs[i]->render_triangles && !allocation_failed) {
+        if (jobs[i]->render_triangles && !allocation_failed && jobs[i]->triangle_count > 0) {
             RenderTriangle *combined_triangles = realloc(render_list.triangles, (render_list.triangle_count + jobs[i]->triangle_count) * sizeof(RenderTriangle));
             if (!combined_triangles) {
                 allocation_failed = true;

@@ -86,12 +86,12 @@ Material load_material_from_mtl(const char *file_name, ShadingModel shading_mode
             char texture_file_name[128];
             sscanf(file_data, "map_Kd %s", texture_file_name);
             char texture_file_path[256];
-            strncpy(texture_file_path, file_name, sizeof(texture_file_path));
+            snprintf(texture_file_path, sizeof(texture_file_path), "%s", file_name);
             char *last_slash = strrchr(texture_file_path, '/');
             if (last_slash) {
                 strcpy(last_slash + 1, texture_file_name);
             } else {
-                strncpy(texture_file_path, texture_file_name, sizeof(texture_file_path));
+                snprintf(texture_file_path, sizeof(texture_file_path), "%s", texture_file_name);
             }
             loaded_material.diffuse_texture = malloc(sizeof(Texture));
 

@@ -60,7 +60,7 @@ typedef struct {
  * 
  * 8 bytes
  */
-typedef void (*ComponentParserFunction)(Scene *scene, Entity entity, int component_id, JSON_Object *json);
+typedef void (*ComponentParserFunction)(Scene *scene, Entity entity, int component_id, void *data);
 
 /**
  * @brief A structure representing a component array
