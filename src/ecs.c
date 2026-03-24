@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "../include/ecs.h"
 #include "../include/types.h"
 #include "../include/scene.h"

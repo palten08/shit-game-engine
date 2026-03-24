@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <math.h>
+
 #include "../include/rendering_pipeline.h"
 #include "../include/types.h"
 #include "../include/matrix_operations.h"

@@ -1,6 +1,7 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <assert.h>
 #include <immintrin.h>
+#include <math.h>
 
 #include "../include/rasterizer.h"
 #include "../include/types.h"
@@ -598,8 +599,8 @@ void draw_debug_line_3d(AppContext *app_context, Scene *scene, Vector3f start, V
 }
 
 int render(AppContext *app_context, RenderList *render_list, Scene *scene) {
-    int texture_lock_result = SDL_LockTexture(app_context->texture, NULL, (void**)&app_context->frame_buffer, &(int){0});
-    if (texture_lock_result != 0) {
+    bool texture_lock_result = SDL_LockTexture(app_context->texture, NULL, (void**)&app_context->frame_buffer, &(int){0});
+    if (!texture_lock_result) {
         LOG_ERROR("Error locking SDL texture: %s", SDL_GetError());
         return 1;
     }
@@ -678,7 +679,7 @@ int render(AppContext *app_context, RenderList *render_list, Scene *scene) {
     draw_debug_line_3d(app_context, scene, mid, light_end, (RGBVector3f){1.0f, 0.0f, 0.0f});     // red = destination
 
     SDL_UnlockTexture(app_context->texture);
-    SDL_RenderCopy(app_context->renderer, app_context->texture, NULL, NULL);
+    SDL_RenderTexture(app_context->renderer, app_context->texture, NULL, NULL);
     SDL_RenderPresent(app_context->renderer);
     return 0;
 }

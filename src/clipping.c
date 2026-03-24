@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "../include/clipping.h"
 #include "../include/types.h"
 

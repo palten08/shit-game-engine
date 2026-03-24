@@ -1,12 +1,12 @@
 #include "../include/utils.h"
 
-double get_delta_time(Uint64 *ticks_now, Uint64 *ticks_last) {
+double get_delta_time(uint64_t *ticks_now, uint64_t *ticks_last) {
     *ticks_last = *ticks_now;
     *ticks_now = SDL_GetPerformanceCounter();
     return ((*ticks_now - *ticks_last) / (double)SDL_GetPerformanceFrequency() );
 }
 
-double get_instantaneous_frame_rate(Uint64 *ticks_now, Uint64 *ticks_last) {
+double get_instantaneous_frame_rate(uint64_t *ticks_now, uint64_t *ticks_last) {
     double delta_time = get_delta_time(ticks_now, ticks_last);
     return 1.0 / delta_time;
 }
@@ -15,7 +15,7 @@ uint32_t convert_rgbvec3f_to_hex_color(RGBVector3f color) {
     uint32_t r = (uint32_t)(color.r * 255.0f) & 0xFF;
     uint32_t g = (uint32_t)(color.g * 255.0f) & 0xFF;
     uint32_t b = (uint32_t)(color.b * 255.0f) & 0xFF;
-    return (r << 16) | (g << 8) | b;
+    return (0xFF << 24) | (r << 16) | (g << 8) | b;
 }
 
 uint32_t convert_rgbavec4f_to_hex_color(RGBAVector4f color) {

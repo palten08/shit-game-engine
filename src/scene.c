@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "../include/scene.h"
 #include "../include/types.h"
 #include "../include/matrix_operations.h"
