@@ -1,15 +1,16 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
+#include <math.h>
 #include "../include/input_actions.h"
 #include "../include/app.h"
 #include "../include/logging.h"
 #include "../include/types.h"
 
-static float get_binding_value(InputBinding *binding, const Uint8 *keyboard, Uint32 mouse, InputActionMap *input_action_map) {
+static float get_binding_value(InputBinding *binding, const bool *keyboard, SDL_MouseButtonFlags mouse, InputActionMap *input_action_map) {
     switch (binding->type) {
         case INPUT_KEYBOARD:
             return binding->code != SDL_SCANCODE_UNKNOWN && keyboard[binding->code] ? 1.0f : 0.0f;
         case INPUT_MOUSE_BUTTON:
-            return (mouse & SDL_BUTTON(binding->code)) ? 1.0f : 0.0f;
+            return (mouse & SDL_BUTTON_MASK(binding->code)) ? 1.0f : 0.0f;
         case INPUT_GAMEPAD_BUTTON:
             return 0.0f; // TODO
         case INPUT_MOUSE_SCROLL_UP:
@@ -121,12 +122,12 @@ int register_axis_1d_input_action(InputActionMap *input_action_map, const char *
  * @param mouse The current state of the mouse buttons
  * @return true if the binding is active, false otherwise
  */
-static bool is_binding_active(InputBinding *binding, const Uint8 *keyboard, Uint32 mouse, InputActionMap *input_action_map) {
+static bool is_binding_active(InputBinding *binding, const bool *keyboard, SDL_MouseButtonFlags mouse, InputActionMap *input_action_map) {
     switch (binding->type) {
         case INPUT_KEYBOARD:
             return binding->code != SDL_SCANCODE_UNKNOWN && keyboard[binding->code];
         case INPUT_MOUSE_BUTTON:
-            return mouse & SDL_BUTTON(binding->code);
+            return mouse & SDL_BUTTON_MASK(binding->code);
         case INPUT_GAMEPAD_BUTTON:
             return false; // TODO
         case INPUT_MOUSE_SCROLL_UP:
@@ -148,14 +149,14 @@ static bool is_binding_active(InputBinding *binding, const Uint8 *keyboard, Uint
  * @param count The number of InputAction in the array
  */
 void update_input_actions(InputActionMap *input_action_map, AppContext *app_context) {
-    const Uint8 *keyboard = SDL_GetKeyboardState(NULL);
-    Uint32 mouse = SDL_GetMouseState(NULL, NULL);
+    const bool *keyboard = SDL_GetKeyboardState(NULL);
+    SDL_MouseButtonFlags mouse = SDL_GetMouseState(NULL, NULL);
 
     input_action_map->scroll_up_this_frame = app_context->scroll_wheel_delta_this_frame > 0;
     input_action_map->scroll_down_this_frame = app_context->scroll_wheel_delta_this_frame < 0;
     app_context->scroll_wheel_delta_this_frame = 0.0f;
 
-    int mouse_delta_x, mouse_delta_y;
+    float mouse_delta_x, mouse_delta_y;
     SDL_GetRelativeMouseState(&mouse_delta_x, &mouse_delta_y);
     input_action_map->mouse_delta_x = mouse_delta_x;
     input_action_map->mouse_delta_y = mouse_delta_y;
@@ -266,7 +267,7 @@ int get_input_action_index_by_name(InputActionMap *input_action_map, const char 
  * @return A Vector2i representing the current mouse position
  */
 Vector2i get_mouse_position(void) {
-    int x, y;
+    float x, y;
     SDL_GetMouseState(&x, &y);
     return (Vector2i){x, y};
 }
@@ -276,7 +277,7 @@ Vector2i get_mouse_position(void) {
  * @return A Vector2i representing the relative mouse movement
  */
 Vector2i get_mouse_delta(void) {
-    int x, y;
+    float x, y;
     SDL_GetRelativeMouseState(&x, &y);
     return (Vector2i){x, y};
 }

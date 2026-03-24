@@ -2,14 +2,14 @@ CC      = gcc
 BUILD   ?= debug
 
 ifeq ($(BUILD),release)
-CFLAGS   = -O3 -Wall -Wextra -Iinclude $(shell sdl2-config --cflags) -msse4.1
+CFLAGS   = -O3 -Wall -Wextra -Iinclude $(shell pkg-config sdl3 --cflags) -msse4.1
 else
-CFLAGS   = -g -Wall -Wextra -Iinclude $(shell sdl2-config --cflags) -msse4.1
+CFLAGS   = -g -Wall -Wextra -Iinclude $(shell pkg-config sdl3 --cflags) -msse4.1
 endif
 
 SRC     = $(wildcard src/*.c)
 OBJ     = $(SRC:src/%.c=build/%.o)
-LDFLAGS = $(shell sdl2-config --libs) -lm -lpthread
+LDFLAGS = -lSDL3 -lm -lpthread $(shell pkg-config sdl3 --libs)
 RM      = rm -f
 
 

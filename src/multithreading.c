@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "../include/multithreading.h"
 #include "../include/types.h"
 #include "../include/vector_operations.h"

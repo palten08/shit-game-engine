@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "../include/quaternion_operations.h"
 #include "../include/types.h"
 

@@ -7,7 +7,7 @@
 #include "msf_gif.h"
 #pragma GCC diagnostic pop
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include "types.h"
 #include "multithreading.h"
 #include "rasterizer.h"
@@ -48,12 +48,11 @@ typedef struct AppContext {
     DepthBuffer *depth_buffer; // 8 bytes
     double time_accumulator; // 8-bytes
     double delta_time; // 8-bytes
-    uint8_t *gif_pixels; // 8 bytes
-    Uint64 ticks_last; // 8 bytes
-    Uint64 systems_timer; // 8 bytes
-    Uint64 rendering_pipeline_timer; // 8 bytes
-    Uint64 rasterizer_timer; // 8 bytes
-    Uint64 update_end_timer; // 8 bytes
+    uint64_t ticks_last; // 8 bytes
+    uint64_t systems_timer; // 8 bytes
+    uint64_t rendering_pipeline_timer; // 8 bytes
+    uint64_t rasterizer_timer; // 8 bytes
+    uint64_t update_end_timer; // 8 bytes
     MsfGifState *gif_state;
     LogMode log_mode; // 4 bytes
     LogVerbosity log_verbosity; // 4 bytes

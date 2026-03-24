@@ -1,10 +1,14 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #define MSF_GIF_IMPL
 
 #include "../include/app.h"
 #include "../include/types.h"
 #include "../include/logging.h"
+
+#ifndef VERSION_SHA
+#define VERSION_SHA "dev"
+#endif
 
 /**
  * @brief Initializes SDL components, including the window, renderer, and texture.
@@ -14,11 +18,24 @@
  * @return 0 on success, 1 on failure.
  */
 int initialize_sdl_components(AppContext *app_context, Vector2i window_resolution, const char *window_title) {
-    LOG_INFO("Calling SDL init");
-    int sdl_init_result = SDL_Init(SDL_INIT_EVERYTHING);
+    bool sdl_metadata_initialized = SDL_SetAppMetadata(window_title, VERSION_SHA, "zone.pete.sge");
+    if (!sdl_metadata_initialized) {
+        LOG_ERROR("Error setting SDL app metadata: %s", SDL_GetError());
+        return 1;
+    }
 
-    if (sdl_init_result != 0) {
-        LOG_ERROR("Error initializing SDL: %s", SDL_GetError());
+    LOG_INFO("Initializing SDL3 sub-systems");
+    LOG_INFO("Initializing SDL3 video subsystem");
+    bool sdl_video_init_result = SDL_InitSubSystem(SDL_INIT_VIDEO);
+    if (!sdl_video_init_result) {
+        LOG_ERROR("Error initializing SDL video subsystem: %s", SDL_GetError());
+        return 1;
+    }
+    LOG_INFO("Initializing SDL3 events subsystem");
+    bool sdl_events_init_result = SDL_InitSubSystem(SDL_INIT_EVENTS);
+    if (!sdl_events_init_result) {
+        LOG_ERROR("Error initializing SDL events subsystem: %s", SDL_GetError());
+        SDL_Quit();
         return 1;
     }
 
@@ -26,7 +43,7 @@ int initialize_sdl_components(AppContext *app_context, Vector2i window_resolutio
     app_context->window_resolution = window_resolution;
 
     LOG_INFO("Creating SDL window");
-    app_context->window = SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, app_context->window_resolution.x, app_context->window_resolution.y, SDL_WINDOW_SHOWN);
+    app_context->window = SDL_CreateWindow(window_title, app_context->window_resolution.x, app_context->window_resolution.y, 0);
     if (app_context->window == NULL) {
         LOG_ERROR("Error creating SDL window: %s", SDL_GetError());
         SDL_Quit();
@@ -34,9 +51,19 @@ int initialize_sdl_components(AppContext *app_context, Vector2i window_resolutio
     }
 
     LOG_INFO("Creating SDL renderer");
-    app_context->renderer = SDL_CreateRenderer(app_context->window, -1, 0);
+    app_context->renderer = SDL_CreateRenderer(app_context->window, NULL);
     if (app_context->renderer == NULL) {
         LOG_ERROR("Error creating SDL renderer: %s", SDL_GetError());
+        SDL_DestroyWindow(app_context->window);
+        SDL_Quit();
+        return 1;
+    }
+
+    LOG_INFO("Enabling SDL vsync");
+    bool vsync_result = SDL_SetRenderVSync(app_context->renderer, true);
+    if (!vsync_result) {
+        LOG_ERROR("Error enabling SDL vsync: %s", SDL_GetError());
+        SDL_DestroyRenderer(app_context->renderer);
         SDL_DestroyWindow(app_context->window);
         SDL_Quit();
         return 1;
@@ -79,6 +106,11 @@ int cleanup_sdl_components(AppContext *app_context) {
     if (app_context->window) {
         SDL_DestroyWindow(app_context->window);
     }
+    LOG_INFO("Quitting individual subsystems");
+    LOG_INFO("Quitting SDL video subsystem");
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    LOG_INFO("Quitting SDL events subsystem");
+    SDL_QuitSubSystem(SDL_INIT_EVENTS);
     LOG_DEBUG("Calling SDL quit");
     SDL_Quit();
     return 0;
@@ -88,12 +120,12 @@ void handle_sdl_events(AppContext *app_context) {
     SDL_Event sdl_event;
     while (SDL_PollEvent(&sdl_event)) {
         switch (sdl_event.type) {
-            case SDL_QUIT:
-                LOG_INFO("Handling SDL_QUIT event");
+            case SDL_EVENT_QUIT:
+                LOG_INFO("Handling SDL_EVENT_QUIT event");
                 app_context->application_running = false;
                 break;
-            case SDL_MOUSEWHEEL:
-                LOG_DEBUG("Handling SDL_MOUSEWHEEL event");
+            case SDL_EVENT_MOUSE_WHEEL:
+                LOG_DEBUG("Handling SDL_EVENT_MOUSE_WHEEL event");
                 app_context->scroll_wheel_delta_this_frame += sdl_event.wheel.y;
                 break;
         }

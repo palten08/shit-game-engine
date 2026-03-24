@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "../include/matrix_operations.h"
 #include "../include/vector_operations.h"
 #include "../include/types.h"
