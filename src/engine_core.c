@@ -95,7 +95,8 @@ void engine_load_scene(Scene *scene, const char *scene_file_path) {
     MESH = register_component(scene, sizeof(MeshComponent), "mesh", parse_mesh_component);
 
     LOG_INFO("Loading scene from file: %s", scene_file_path);
-    load_scene_from_file(scene, scene_file_path);
+    load_scene_from_binary(scene_file_path, scene);
+    //load_scene_from_file(scene, scene_file_path);
 
     return;
 }
@@ -137,6 +138,8 @@ void engine_frame_end(AppContext *app_context) {
     }
 
     free(app_context->render_list.triangles);
+    app_context->render_list.triangles = NULL;
+    app_context->render_list.triangle_count = 0;
     if (app_context->record_gif) {
         SDL_RenderReadPixels(app_context->renderer, NULL, SDL_PIXELFORMAT_RGBA32, app_context->gif_pixels, app_context->gif_config.gif_width * 4);
         msf_gif_frame(app_context->gif_state, app_context->gif_pixels, app_context->gif_config.centiseconds_per_frame, app_context->gif_config.gif_quality, app_context->gif_config.gif_width * 4);
