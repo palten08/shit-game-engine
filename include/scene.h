@@ -17,6 +17,7 @@
  */
 typedef struct Scene {
     uint64_t component_masks[MAX_ENTITIES]; // 8192 bytes
+    EntityRecord entity_records[MAX_ENTITIES]; // 8192 bytes
     ComponentArray component_array[MAX_COMPONENTS]; // 1440 bytes
     System systems[MAX_SYSTEMS]; // 512 bytes
     VirtualCamera virtual_camera; // 80 bytes

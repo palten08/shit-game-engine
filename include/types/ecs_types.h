@@ -107,4 +107,30 @@ typedef struct {
 extern int TRANSFORM;
 extern int MESH;
 
+typedef struct {
+    int archetype_index; // 4 bytes
+    int archetype_table_row_index; // 4 bytes
+} EntityRecord;
+
+typedef struct {
+    size_t component_size; // 8 bytes
+    void *component_structures; // 8 bytes
+    int component_id; // 4 bytes
+} ArchetypeTableColumn;
+
+typedef struct {
+    int component_id; // 4 bytes
+    int column_index; // 4 bytes
+} ComponentToColumnMapEntry;
+
+typedef struct {
+    uint64_t component_mask; // 8 bytes
+    Entity *entity_ids; // 8 bytes
+    ArchetypeTableColumn *columns; // 8 bytes
+    ComponentToColumnMapEntry *component_to_column_map; // 8 bytes
+    int row_count; // 4 bytes
+    int row_capacity; // 4 bytes
+    int column_count; // 4 bytes
+} ArchetypeTable;
+
  /** @} */ // End of ECS group
