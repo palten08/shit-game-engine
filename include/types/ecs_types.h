@@ -4,7 +4,6 @@
 
 #include "vector_types.h"
 #include "geometry_types.h"
-#include "parson.h"
 #include "rotation_types.h"
 
 /** @defgroup ECS Entity Component System Structures
@@ -123,6 +122,11 @@ typedef struct {
     int column_index; // 4 bytes
 } ComponentToColumnMapEntry;
 
+/**
+ * @brief A structure representing an archetype, which is a collection of entities that share the same set of components. Each archetype has its own structure for storing component data, organized in columns for each component type.
+ * 
+ * 48 bytes
+ */
 typedef struct {
     uint64_t component_mask; // 8 bytes
     Entity *entity_ids; // 8 bytes

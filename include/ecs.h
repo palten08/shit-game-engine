@@ -13,11 +13,11 @@ int register_system(Scene *scene, void (*system_function)(Scene *, AppContext *)
 void *get_system(Scene *scene, int system_id);
 void run_systems(Scene *scene, AppContext *app_context);
 
-ArchetypeTable create_new_archetype(Scene *scene, uint64_t component_mask);
-int add_row_to_archetype(ArchetypeTable *archetype_table, Entity entity_id);
-int remove_row_from_archetype(Scene *scene, ArchetypeTable *archetype_table, Entity entity_id);
-void *read_component_data_from_archetype_by_component_id(ArchetypeTable *archetype_table, int component_id, int row_index);
-void *read_component_data_from_archetype(ArchetypeTable *archetype_table, int column_index, int row_index);
+Archetype create_new_archetype(Scene *scene, uint64_t component_mask);
+int add_row_to_archetype(Archetype *archetype, Entity entity_id);
+int remove_row_from_archetype(Scene *scene, Archetype *archetype, Entity entity_id);
+void *read_component_data_from_archetype_by_component_id(Archetype *archetype, int component_id, int row_index);
+void *read_component_data_from_archetype(Archetype *archetype, int column_index, int row_index);
 
 void parse_transform_component(Scene *scene, Entity entity, int component_id, void *data);
 void parse_mesh_component(Scene *scene, Entity entity, int component_id, void *data);

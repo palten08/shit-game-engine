@@ -101,14 +101,12 @@ void run_systems(Scene *scene, AppContext *app_context) {
     }
 }
 
-Archetype create_new_archetype(Scene *scene, uint64_t component_mask) {
-    Archetype archetype = {0};
-    archetype.component_mask = component_mask;
-    archetype.entity_ids = malloc(sizeof(Entity) * MAX_ENTITIES);
-    archetype.columns = malloc(sizeof(ArchetypeColumn) * MAX_COMPONENTS);
-    archetype.component_to_column_map = malloc(sizeof(ComponentToColumnMapEntry) * MAX_COMPONENTS);
-    archetype.row_count = 0;
-    archetype.row_capacity = MAX_ENTITIES;
+Archetype *create_new_archetype(Scene *scene, uint64_t component_mask) {
+    Archetype *archetype = &scene->archetypes[scene->registered_archetype_count++];
+    archetype->component_mask = component_mask;
+    archetype->entity_ids = malloc(sizeof(Entity) * MAX_ENTITIES);
+    archetype->row_count = 0;
+    archetype->row_capacity = MAX_ENTITIES;
 
     // Count how many columns this archetype table will have (number of bits set in the mask)
     int column_count = 0;
@@ -116,18 +114,18 @@ Archetype create_new_archetype(Scene *scene, uint64_t component_mask) {
         if (component_mask & (1ULL << i)) column_count++;
     }
 
-    archetype.columns = malloc(sizeof(ArchetypeColumn) * column_count);
-    archetype.component_to_column_map = malloc(sizeof(ComponentToColumnMapEntry) * column_count);
-    archetype.column_count = column_count;
+    archetype->columns = malloc(sizeof(ArchetypeColumn) * column_count);
+    archetype->component_to_column_map = malloc(sizeof(ComponentToColumnMapEntry) * column_count);
+    archetype->column_count = column_count;
 
     int current_column = 0;
     for (int i = 0; i < MAX_COMPONENTS; i++) {
         if (component_mask & (1ULL << i)) {
-            archetype.component_to_column_map[current_column].component_id = i;
-            archetype.component_to_column_map[current_column].column_index = current_column;
-            archetype.columns[current_column].component_id = i;
-            archetype.columns[current_column].component_size = scene->component_array[i].size;
-            archetype.columns[current_column].component_structures = malloc(scene->component_array[i].size * MAX_ENTITIES);
+            archetype->component_to_column_map[current_column].component_id = i;
+            archetype->component_to_column_map[current_column].column_index = current_column;
+            archetype->columns[current_column].component_id = i;
+            archetype->columns[current_column].component_size = scene->component_array[i].size;
+            archetype->columns[current_column].component_structures = malloc(scene->component_array[i].size * MAX_ENTITIES);
             current_column++;
         }
     }
@@ -207,8 +205,13 @@ void *read_component_data_from_archetype(Archetype *archetype, int column_index,
     return (char *)archetype->columns[column_index].component_structures + (row_index * archetype->columns[column_index].component_size);
 }
 
-Archetype find_or_create_archetype(Scene *scene, uint64_t component_mask) {
-
+Archetype *find_or_create_archetype(Scene *scene, uint64_t component_mask) {
+    for (int i = 0; i < scene->registered_archetype_count; i++) {
+        if (scene->archetypes[i].component_mask == component_mask) {
+            return &scene->archetypes[i];
+        }
+    }
+    return create_new_archetype(scene, component_mask);
 }
 
 void parse_transform_component(Scene *scene, Entity entity, int component_id, void *data) {
