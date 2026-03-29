@@ -148,8 +148,9 @@ void engine_frame_end(AppContext *app_context) {
     }
 }
 
-void engine_shutdown(AppContext *app_context) {
+void engine_shutdown(AppContext *app_context, Scene *loaded_scene) {
     LOG_INFO("Attempting to cleanly shut the engine down");
+    destroy_scene(loaded_scene);
     if (app_context->record_gif) {
         MsfGifResult result = msf_gif_end(app_context->gif_state);
         if (result.data) {

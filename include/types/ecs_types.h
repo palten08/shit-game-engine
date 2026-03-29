@@ -73,10 +73,8 @@ typedef void (*ComponentParserFunction)(Scene *scene, Entity entity, int compone
  */
 typedef struct {
     char name[32]; // 32 bytes
-    void *data; // 8 bytes
     size_t size; // 8 bytes
     ComponentParserFunction parser; // 8 bytes
-    int count; // 4 bytes
 } ComponentArray;
 
 /**

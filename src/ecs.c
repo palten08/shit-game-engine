@@ -10,7 +10,7 @@
 int TRANSFORM;
 int MESH;
 
-int register_entity(Scene *scene) {
+int register_entity(Scene *scene, char *entity_name) {
     if (scene->entity_manager.next_id >= MAX_ENTITIES) {
         LOG_WARNING("No room to register new entity; Registered entity count is %d", scene->registered_entity_count);
         return -1; // No available slot for the entity
@@ -20,6 +20,10 @@ int register_entity(Scene *scene) {
     EntityRecord empty_record = { .archetype_index = -1, .archetype_row_index = -1 };
     scene->entity_records[entity_id] = empty_record;
     scene->registered_entity_count++;
+    EntityNameToIDMap *name_to_id_entry = &scene->entity_name_to_id_map[scene->registered_entity_count - 1];
+    strncpy(name_to_id_entry->entity_name, entity_name, sizeof(name_to_id_entry->entity_name) - 1);
+    name_to_id_entry->entity_name[sizeof(name_to_id_entry->entity_name) - 1] = '\0';
+    name_to_id_entry->entity_id = entity_id;
     return entity_id;
 }
 
@@ -62,8 +66,6 @@ int register_component(Scene *scene, size_t component_size, const char *name, Co
     strncpy(scene->component_array[component_id].name, name, sizeof(scene->component_array[component_id].name) - 1);
     scene->component_array[component_id].name[sizeof(scene->component_array[component_id].name) - 1] = '\0';
     scene->component_array[component_id].parser = parser;
-    scene->component_array[component_id].data = malloc(MAX_ENTITIES * component_size);
-    scene->component_array[component_id].count = 0;
     scene->registered_component_count++;
     return component_id;
 }
@@ -197,14 +199,12 @@ int remove_row_from_archetype(Scene *scene, Archetype *archetype, Entity entity_
             void *last_component_data = (char *)archetype->columns[i].component_structures + (last_row_index * component_size);
             memcpy(current_component_data, last_component_data, component_size);
         }
-        //register_entity_record(scene, entity_id, -1, -1); // Invalidate the entity's archetype record
         register_entity_record(scene, archetype->entity_ids[current_row_index], last_entity_record.archetype_index, current_row_index); // Update the moved entity's archetype record
         archetype->row_count--;
         return last_entity_id;
     } else {
         // The entity we are trying to remove is the last one in the table, we can just decrease the row count
         archetype->row_count--;
-        //register_entity_record(scene, entity_id, -1, -1); // Invalidate the entity's archetype record
         return -1;
     }
 }
@@ -246,6 +246,13 @@ void remove_component_from_entity(Scene *scene, Entity entity, int component_id)
 }
 
 void destroy_entity(Scene *scene, Entity entity) {
+    for (int i = 0; i < scene->registered_entity_count; i++) {
+        if (scene->entity_name_to_id_map[i].entity_id == entity) {
+            scene->entity_name_to_id_map[i].entity_name[0] = '\0';
+            scene->entity_name_to_id_map[i].entity_id = -1;
+            break;
+        }
+    }
     EntityRecord current_entity_record = get_entity_record(scene, entity);
     if (current_entity_record.archetype_index < 0 || current_entity_record.archetype_row_index < 0) {
         // Entity already does not have a valid archetype record, so we can just return

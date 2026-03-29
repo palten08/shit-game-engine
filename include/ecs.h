@@ -4,7 +4,7 @@
 #include "scene.h"
 #include "app.h"
 
-int register_entity(Scene *scene);
+int register_entity(Scene *scene, char *entity_name);
 int get_entity_id_by_name(Scene *scene, const char *name);
 bool register_entity_record(Scene *scene, int entity_id, int archetype_index, int archetype_table_row_index);
 EntityRecord get_entity_record(Scene *scene, Entity entity);

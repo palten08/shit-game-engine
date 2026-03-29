@@ -18,7 +18,6 @@
  */
 typedef struct Scene {
     EntityNameToIDMap entity_name_to_id_map[MAX_ENTITIES]; // 69632 bytes
-    uint64_t component_masks[MAX_ENTITIES]; // 8192 bytes
     EntityRecord entity_records[MAX_ENTITIES]; // 8192 bytes
     Archetype archetypes[MAX_ARCHETYPES]; // 1536 bytes
     ComponentArray component_array[MAX_COMPONENTS]; // 1440 bytes
@@ -81,4 +80,6 @@ typedef struct {
 } SceneFileEntity;
 
 Scene initialize_scene();
+int get_mesh_id_by_name(Scene *scene, const char *name);
 Scene *load_scene_from_binary(const char *filename, Scene *scene);
+void destroy_scene(Scene *scene);

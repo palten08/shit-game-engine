@@ -55,6 +55,7 @@ static int register_mesh(Scene *scene, Mesh3D mesh) {
     int mesh_id = scene->asset_library.mesh_count;
     LOG_DEBUG("Registering mesh with ID %d", mesh_id);
     scene->asset_library.meshes[mesh_id] = mesh;
+    scene->asset_library.meshes[mesh_id].id = mesh_id;
     scene->asset_library.mesh_count++;
     return mesh_id;
 }
@@ -67,6 +68,16 @@ static int get_material_id_by_name(Scene *scene, const char *name) {
     }
     LOG_WARNING("Could not find material with name '%s'", name);
     return -1; // Material not found
+}
+
+int get_mesh_id_by_name(Scene *scene, const char *name) {
+    for (uint32_t i = 0; i < scene->asset_library.mesh_count; i++) {
+        if (strcmp(scene->asset_library.meshes[i].name, name) == 0) {
+            return scene->asset_library.meshes[i].id;
+        }
+    }
+    LOG_WARNING("Could not find mesh with name '%s'", name);
+    return -1; // Mesh not found
 }
 
 Scene *load_scene_from_binary(const char *filename, Scene *scene) {
@@ -181,11 +192,7 @@ Scene *load_scene_from_binary(const char *filename, Scene *scene) {
 
     LOG_DEBUG("Registering entities and their components");
     for (uint32_t i = 0; i < loaded_header.entity_count; i++) {
-        Entity entity_id = register_entity(scene);
-        EntityNameToIDMap *name_to_id_entry = &scene->entity_name_to_id_map[scene->registered_entity_count - 1];
-        strncpy(name_to_id_entry->entity_name, loaded_entities[i].entity_name, sizeof(name_to_id_entry->entity_name) - 1);
-        name_to_id_entry->entity_name[sizeof(name_to_id_entry->entity_name) - 1] = '\0';
-        name_to_id_entry->entity_id = entity_id;
+        Entity entity_id = register_entity(scene, loaded_entities[i].entity_name);
         LOG_DEBUG("Registered entity %d with ID %d", i, entity_id);
         for (uint32_t j = 0; j < loaded_entities[i].component_count; j++) {
             int component_id = -1;
@@ -217,4 +224,34 @@ Scene *load_scene_from_binary(const char *filename, Scene *scene) {
     fclose(file_pointer);
 
     return scene;
+}
+
+void destroy_scene(Scene *scene) {
+    // Free materials
+    for (uint32_t i = 0; i < scene->asset_library.material_count; i++) {
+        free(scene->asset_library.materials[i].diffuse_texture);
+        free(scene->asset_library.materials[i].phong_parameters);
+        free(scene->asset_library.materials[i].pbr_parameters);
+    }
+    free(scene->asset_library.materials);
+
+    // Free meshes
+    for (uint32_t i = 0; i < scene->asset_library.mesh_count; i++) {
+        free(scene->asset_library.meshes[i].triangles);
+        free(scene->asset_library.meshes[i].face_normals);
+        free(scene->asset_library.meshes[i].vertex_normals);
+        free(scene->asset_library.meshes[i].uv_coordinates);
+    }
+    free(scene->asset_library.meshes);
+
+    // Free archetype columns
+    for (int i = 0; i < scene->registered_archetype_count; i++) {
+        Archetype *archetype = &scene->archetypes[i];
+        for (int j = 0; j < archetype->column_count; j++) {
+            free(archetype->columns[j].component_structures);
+        }
+        free(archetype->columns);
+        free(archetype->component_to_column_map);
+        free(archetype->entity_ids);
+    }
 }
