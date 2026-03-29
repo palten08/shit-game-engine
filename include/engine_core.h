@@ -21,4 +21,4 @@ void engine_load_scene(Scene *scene, const char *scene_file_path);
 void engine_frame_start(AppContext *app_context);
 void engine_run(AppContext *app_context, Scene *loaded_scene);
 void engine_frame_end(AppContext *app_context);
-void engine_shutdown(AppContext *app_context);
+void engine_shutdown(AppContext *app_context, Scene *loaded_scene);

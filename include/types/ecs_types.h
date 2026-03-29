@@ -4,7 +4,6 @@
 
 #include "vector_types.h"
 #include "geometry_types.h"
-#include "parson.h"
 #include "rotation_types.h"
 
 /** @defgroup ECS Entity Component System Structures
@@ -33,6 +32,11 @@ typedef int Entity;
 typedef struct {
     int next_id; // 4 bytes
 } EntityManager;
+
+typedef struct {
+    char entity_name[64]; // 64 bytes
+    int entity_id; // 4 bytes
+} EntityNameToIDMap;
 
 /**
  * @brief A structure representing a transform component that game projects can associate with an entity
@@ -69,10 +73,8 @@ typedef void (*ComponentParserFunction)(Scene *scene, Entity entity, int compone
  */
 typedef struct {
     char name[32]; // 32 bytes
-    void *data; // 8 bytes
     size_t size; // 8 bytes
     ComponentParserFunction parser; // 8 bytes
-    int count; // 4 bytes
 } ComponentArray;
 
 /**
@@ -106,5 +108,41 @@ typedef struct {
 /** IDs for built-in engine component types */
 extern int TRANSFORM;
 extern int MESH;
+
+typedef struct {
+    int archetype_index; // 4 bytes
+    int archetype_row_index; // 4 bytes
+} EntityRecord;
+
+typedef struct {
+    size_t component_size; // 8 bytes
+    void *component_structures; // 8 bytes
+    int component_id; // 4 bytes
+} ArchetypeColumn;
+
+typedef struct {
+    int component_id; // 4 bytes
+    int column_index; // 4 bytes
+} ComponentToColumnMapEntry;
+
+/**
+ * @brief A structure representing an archetype, which is a collection of entities that share the same set of components. Each archetype has its own structure for storing component data, organized in columns for each component type.
+ * 
+ * 48 bytes
+ */
+typedef struct {
+    uint64_t component_mask; // 8 bytes
+    Entity *entity_ids; // 8 bytes
+    ArchetypeColumn *columns; // 8 bytes
+    ComponentToColumnMapEntry *component_to_column_map; // 8 bytes
+    int row_count; // 4 bytes
+    int row_capacity; // 4 bytes
+    int column_count; // 4 bytes
+} Archetype;
+
+typedef struct {
+    Archetype **archetypes; // 8 bytes
+    int archetype_count; // 4 bytes
+} MatchedArchetypes;
 
  /** @} */ // End of ECS group

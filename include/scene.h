@@ -8,6 +8,7 @@
 #define MAX_ENTITIES 1024
 #define MAX_SYSTEMS 32
 #define MAX_COMPONENTS 24
+#define MAX_ARCHETYPES 32
 
 #define MAX_MATERIALS 256
 #define MAX_MESHES 256
@@ -16,7 +17,9 @@
  * @brief A structure representing a scene, including its entities and components.
  */
 typedef struct Scene {
-    uint64_t component_masks[MAX_ENTITIES]; // 8192 bytes
+    EntityNameToIDMap entity_name_to_id_map[MAX_ENTITIES]; // 69632 bytes
+    EntityRecord entity_records[MAX_ENTITIES]; // 8192 bytes
+    Archetype archetypes[MAX_ARCHETYPES]; // 1536 bytes
     ComponentArray component_array[MAX_COMPONENTS]; // 1440 bytes
     System systems[MAX_SYSTEMS]; // 512 bytes
     VirtualCamera virtual_camera; // 80 bytes
@@ -25,6 +28,7 @@ typedef struct Scene {
     int registered_entity_count; // 4 bytes
     int registered_component_count; // 4 bytes
     int registered_system_count; // 4 bytes
+    int registered_archetype_count; // 4 bytes
     EntityManager entity_manager; // 4 bytes
 } Scene;
 
@@ -76,4 +80,6 @@ typedef struct {
 } SceneFileEntity;
 
 Scene initialize_scene();
+int get_mesh_id_by_name(Scene *scene, const char *name);
 Scene *load_scene_from_binary(const char *filename, Scene *scene);
+void destroy_scene(Scene *scene);

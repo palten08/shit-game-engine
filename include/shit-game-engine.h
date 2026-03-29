@@ -21,3 +21,4 @@
 #include "logging.h"
 #include "quaternion_operations.h"
 #include "materials.h"
+#include "debug.h"

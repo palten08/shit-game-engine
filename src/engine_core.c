@@ -122,7 +122,8 @@ void engine_run(AppContext *app_context, Scene *loaded_scene) {
     app_context->systems_timer = SDL_GetPerformanceCounter();
     run_systems(loaded_scene, app_context);
     app_context->rendering_pipeline_timer = SDL_GetPerformanceCounter();
-    app_context->render_list = generate_render_list(loaded_scene, app_context);
+    //app_context->render_list = generate_render_list(loaded_scene, app_context);
+    app_context->render_list = rendering_pipeline_single_threaded(loaded_scene, app_context);
     app_context->rasterizer_timer = SDL_GetPerformanceCounter();
     render(app_context, &app_context->render_list, loaded_scene);
     app_context->update_end_timer = SDL_GetPerformanceCounter();
@@ -147,8 +148,9 @@ void engine_frame_end(AppContext *app_context) {
     }
 }
 
-void engine_shutdown(AppContext *app_context) {
+void engine_shutdown(AppContext *app_context, Scene *loaded_scene) {
     LOG_INFO("Attempting to cleanly shut the engine down");
+    destroy_scene(loaded_scene);
     if (app_context->record_gif) {
         MsfGifResult result = msf_gif_end(app_context->gif_state);
         if (result.data) {
