@@ -19,3 +19,4 @@ typedef struct {
 
 void rendering_pipeline_worker(void *arg);
 RenderList generate_render_list(Scene *scene, AppContext *app_context);
+RenderList rendering_pipeline_single_threaded(Scene *scene, AppContext *app_context);

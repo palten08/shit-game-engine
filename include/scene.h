@@ -17,6 +17,7 @@
  * @brief A structure representing a scene, including its entities and components.
  */
 typedef struct Scene {
+    EntityNameToIDMap entity_name_to_id_map[MAX_ENTITIES]; // 69632 bytes
     uint64_t component_masks[MAX_ENTITIES]; // 8192 bytes
     EntityRecord entity_records[MAX_ENTITIES]; // 8192 bytes
     Archetype archetypes[MAX_ARCHETYPES]; // 1536 bytes

@@ -11,15 +11,26 @@ int TRANSFORM;
 int MESH;
 
 int register_entity(Scene *scene) {
-    if (scene->registered_entity_count >= MAX_ENTITIES) {
+    if (scene->entity_manager.next_id >= MAX_ENTITIES) {
         LOG_WARNING("No room to register new entity; Registered entity count is %d", scene->registered_entity_count);
         return -1; // No available slot for the entity
     }
-    int entity_id = scene->entity_manager.next_id++;
-    LOG_DEBUG("Registering entity with ID %d", entity_id);
+    int entity_id = scene->entity_manager.next_id;
+    scene->entity_manager.next_id++;
+    EntityRecord empty_record = { .archetype_index = -1, .archetype_row_index = -1 };
+    scene->entity_records[entity_id] = empty_record;
     scene->registered_entity_count++;
-    scene->entity_records[entity_id] = (EntityRecord){ .archetype_index = -1, .archetype_row_index = -1 };
     return entity_id;
+}
+
+int get_entity_id_by_name(Scene *scene, const char *name) {
+    for (int i = 0; i < scene->registered_entity_count; i++) {
+        if (strcmp(scene->entity_name_to_id_map[i].entity_name, name) == 0) {
+            return scene->entity_name_to_id_map[i].entity_id;
+        }
+    }
+    LOG_WARNING("Could not find entity with name '%s'", name);
+    return -1; // Entity with the given name was not found
 }
 
 bool register_entity_record(Scene *scene, int entity_id, int archetype_index, int archetype_row_index) {
@@ -58,19 +69,17 @@ int register_component(Scene *scene, size_t component_size, const char *name, Co
 }
 
 void *get_component(Scene *scene, int component_id, Entity entity) {
-    if (component_id < 0 || component_id >= scene->registered_component_count) {
-        LOG_WARNING("Could not find component with ID %d", component_id);
-        return NULL; // Invalid component ID
+    EntityRecord current_entity_record = get_entity_record(scene, entity);
+    if (current_entity_record.archetype_index < 0 || current_entity_record.archetype_row_index < 0) {
+        LOG_WARNING("Entity %d does not have a valid archetype record, cannot get component with ID %d", entity, component_id);
+        return NULL; // Entity does not have a valid archetype record
     }
-    if (entity < 0 || entity >= MAX_ENTITIES) {
-        LOG_WARNING("Invalid entity ID %d", entity);
-        return NULL; // Invalid entity ID
-    }
-    if ((scene->component_masks[entity] & (1ULL << component_id)) == 0) {
+    Archetype *current_archetype = &scene->archetypes[current_entity_record.archetype_index];
+    if ((current_archetype->component_mask & (1ULL << component_id)) == 0) {
         LOG_DEBUG("Entity %d does not have component with ID %d", entity, component_id);
         return NULL; // Entity does not have this component
     }
-    return (void *)(char *)(scene->component_array[component_id].data + (entity * scene->component_array[component_id].size));
+    return read_component_data_from_archetype_by_component_id(current_archetype, component_id, current_entity_record.archetype_row_index);
 }
 
 int register_system(Scene *scene, void (*system_function)(Scene *, AppContext *), uint64_t required_components) {
@@ -133,6 +142,15 @@ Archetype *create_new_archetype(Scene *scene, uint64_t component_mask) {
     return archetype;
 }
 
+Archetype *find_or_create_archetype(Scene *scene, uint64_t component_mask) {
+    for (int i = 0; i < scene->registered_archetype_count; i++) {
+        if (scene->archetypes[i].component_mask == component_mask) {
+            return &scene->archetypes[i];
+        }
+    }
+    return create_new_archetype(scene, component_mask);
+}
+
 int add_row_to_archetype(Archetype *archetype, Entity entity_id) {
     int row_index = archetype->row_count;
     if (archetype->row_count >= archetype->row_capacity) {
@@ -179,16 +197,63 @@ int remove_row_from_archetype(Scene *scene, Archetype *archetype, Entity entity_
             void *last_component_data = (char *)archetype->columns[i].component_structures + (last_row_index * component_size);
             memcpy(current_component_data, last_component_data, component_size);
         }
-        archetype->row_count--;
-        register_entity_record(scene, entity_id, -1, -1); // Invalidate the entity's archetype record
+        //register_entity_record(scene, entity_id, -1, -1); // Invalidate the entity's archetype record
         register_entity_record(scene, archetype->entity_ids[current_row_index], last_entity_record.archetype_index, current_row_index); // Update the moved entity's archetype record
+        archetype->row_count--;
         return last_entity_id;
     } else {
         // The entity we are trying to remove is the last one in the table, we can just decrease the row count
         archetype->row_count--;
-        register_entity_record(scene, entity_id, -1, -1); // Invalidate the entity's archetype record
+        //register_entity_record(scene, entity_id, -1, -1); // Invalidate the entity's archetype record
         return -1;
     }
+}
+
+void remove_component_from_entity(Scene *scene, Entity entity, int component_id) {
+    EntityRecord current_entity_record = get_entity_record(scene, entity);
+    if (current_entity_record.archetype_index < 0 || current_entity_record.archetype_row_index < 0) {
+        LOG_WARNING("Entity %d does not have a valid archetype record, cannot remove component", entity);
+        return; // Entity does not have a valid archetype record
+    }
+    if ((scene->archetypes[current_entity_record.archetype_index].component_mask & (1ULL << component_id)) == 0) {
+        LOG_WARNING("Entity %d does not have component with ID %d, cannot remove", entity, component_id);
+        return; // Entity does not have this component
+    }
+    uint64_t resultant_component_mask = scene->archetypes[current_entity_record.archetype_index].component_mask & ~(1ULL << component_id);
+    if (resultant_component_mask == 0) {
+        // The entity will have no components left after this, so we can just remove it from its current archetype and not add it to a new archetype
+        remove_row_from_archetype(scene, &scene->archetypes[current_entity_record.archetype_index], entity);
+        register_entity_record(scene, entity, -1, -1); // Invalidate the entity's archetype record
+    } else {
+        // The entity will still have at least one component
+        // We need to find a new archetype for it to exist under
+        Archetype *resultant_archetype = find_or_create_archetype(scene, resultant_component_mask);
+        int new_row_index = add_row_to_archetype(resultant_archetype, entity);
+        // Copy existing component data (except for the removed component) to the new archetype's structure
+        Archetype *current_archetype = &scene->archetypes[current_entity_record.archetype_index];
+        for (int i = 0; i < current_archetype->column_count; i++) {
+            int existing_component_id = current_archetype->component_to_column_map[i].component_id;
+            if (existing_component_id == component_id) continue; // Skip the removed component
+            void *source = read_component_data_from_archetype(current_archetype, i, current_entity_record.archetype_row_index);
+            void *destination = read_component_data_from_archetype_by_component_id(resultant_archetype, existing_component_id, new_row_index);
+            memcpy(destination, source, scene->component_array[existing_component_id].size);
+        }
+        // Remove the entity's row from the old archetype
+        remove_row_from_archetype(scene, current_archetype, entity);
+
+        register_entity_record(scene, entity, resultant_archetype - scene->archetypes, new_row_index);
+    }
+}
+
+void destroy_entity(Scene *scene, Entity entity) {
+    EntityRecord current_entity_record = get_entity_record(scene, entity);
+    if (current_entity_record.archetype_index < 0 || current_entity_record.archetype_row_index < 0) {
+        // Entity already does not have a valid archetype record, so we can just return
+        return;
+    }
+    Archetype *current_archetype = &scene->archetypes[current_entity_record.archetype_index];
+    remove_row_from_archetype(scene, current_archetype, entity);
+    register_entity_record(scene, entity, -1, -1); // Invalidate the entity's archetype record
 }
 
 void *read_component_data_from_archetype_by_component_id(Archetype *archetype, int component_id, int row_index) {
@@ -205,13 +270,70 @@ void *read_component_data_from_archetype(Archetype *archetype, int column_index,
     return (char *)archetype->columns[column_index].component_structures + (row_index * archetype->columns[column_index].component_size);
 }
 
-Archetype *find_or_create_archetype(Scene *scene, uint64_t component_mask) {
-    for (int i = 0; i < scene->registered_archetype_count; i++) {
-        if (scene->archetypes[i].component_mask == component_mask) {
-            return &scene->archetypes[i];
+void add_component(Scene *scene, Entity entity, int component_id, void *component_data) {
+    EntityRecord current_entity_record = get_entity_record(scene, entity);
+    if (current_entity_record.archetype_index < 0) {
+        // The entity is not associated with any archetypes at all
+        // Either we find one that already exists and has only this component or we create a new archetype for it
+        uint64_t new_component_mask = (1ULL << component_id);
+        Archetype *resultant_archetype = find_or_create_archetype(scene, new_component_mask);
+        int new_row_index = add_row_to_archetype(resultant_archetype, entity);
+        void *destination = read_component_data_from_archetype_by_component_id(resultant_archetype, component_id, new_row_index);
+        memcpy(destination, component_data, scene->component_array[component_id].size);
+        register_entity_record(scene, entity, resultant_archetype - scene->archetypes, new_row_index);
+    } else {
+        // The entity has been associated with an archetype already
+        // We should check to see if the archetype already has this particular component
+        // If it does, we should update the data for it
+        // Otherwise, we need to move the entity to a new archetype that has the new component added to its mask and copy all of the existing component data over to the new archetype's structure along with the new component data
+        Archetype *current_archetype = &scene->archetypes[current_entity_record.archetype_index];
+        if ((current_archetype->component_mask & (1ULL << component_id)) != 0) {
+            // The archetype has this component, so we just update the data for it
+            void *destination = read_component_data_from_archetype_by_component_id(current_archetype, component_id, current_entity_record.archetype_row_index);
+            memcpy(destination, component_data, scene->component_array[component_id].size);
+        } else {
+            // The archetype does not have this component, so we need to move the entity to a new archetype that has the new component added to its mask and copy all of the existing component data over to the new archetype's structure along with the new component data
+            uint64_t new_component_mask = current_archetype->component_mask | (1ULL << component_id);
+            Archetype *resultant_archetype = find_or_create_archetype(scene, new_component_mask);
+            int new_row_index = add_row_to_archetype(resultant_archetype, entity);
+            // Copy existing component data to the new archetype's structure
+            for (int i = 0; i < current_archetype->column_count; i++) {
+                int existing_component_id = current_archetype->component_to_column_map[i].component_id;
+                void *source = read_component_data_from_archetype(current_archetype, i, current_entity_record.archetype_row_index);
+                void *destination = read_component_data_from_archetype_by_component_id(resultant_archetype, existing_component_id, new_row_index);
+                memcpy(destination, source, scene->component_array[existing_component_id].size);
+            }
+            // Copy new component data to the new archetype's structure
+            void *new_component_destination = read_component_data_from_archetype_by_component_id(resultant_archetype, component_id, new_row_index);
+            memcpy(new_component_destination, component_data, scene->component_array[component_id].size);
+            // Remove the entity's row from the old archetype
+            remove_row_from_archetype(scene, current_archetype, entity);
+            // Update the entity record to point to the new archetype and row index
+            register_entity_record(scene, entity, resultant_archetype - scene->archetypes, new_row_index);
         }
     }
-    return create_new_archetype(scene, component_mask);
+}
+
+MatchedArchetypes find_matching_archetypes(Scene *scene, uint64_t component_mask_query) {
+    MatchedArchetypes result;
+    result.archetypes = malloc(sizeof(Archetype *) * scene->registered_archetype_count);
+    result.archetype_count = 0;
+    for (int i = 0; i < scene->registered_archetype_count; i++) {
+        if ((scene->archetypes[i].component_mask & component_mask_query) == component_mask_query) {
+            result.archetypes[result.archetype_count++] = &scene->archetypes[i];
+        }
+    }
+    return result;
+}
+
+void *get_archetype_column_pointer(Archetype *archetype, int component_id) {
+    for (int i = 0; i < archetype->column_count; i++) {
+        if (archetype->columns[i].component_id == component_id) {
+            return archetype->columns[i].component_structures;
+        }
+    }
+    LOG_WARNING("Component with ID %d not found in archetype table", component_id);
+    return NULL; // Component not found in archetype table
 }
 
 void parse_transform_component(Scene *scene, Entity entity, int component_id, void *data) {

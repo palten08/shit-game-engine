@@ -12,6 +12,119 @@
 #include "../include/ecs.h"
 #include "../include/multithreading.h"
 
+static RenderTriangle *process_entity_mesh(Mesh3D *mesh_data, Material *material_data, Vector2i resolution, Matrix4 model_matrix, Matrix4 view_matrix, Matrix4 projection_matrix, Vector3f light_direction, DirectionalLight directional_light, int *output_triangle_count) {
+    int output_capacity = mesh_data->triangle_count;
+    RenderTriangle *output_render_triangles = malloc(sizeof(RenderTriangle) * output_capacity);
+    *output_triangle_count = 0;
+    for (int t = 0; t < mesh_data->triangle_count; t++) {
+        Vector4f clip_space_vertices[3];
+        Vector3f world_space_vertex_positions[3];
+        Vector3f world_space_vertex_normals[3];
+        Vector2f uv_coordinates[3];
+        float perspective_w_values[3];
+        for (int v = 0; v < 3; v++) {
+            Vector4f world_space_vertex = mat4_multiply_vec4(model_matrix, (Vector4f){mesh_data->triangles[t].vertices[v].position.x, mesh_data->triangles[t].vertices[v].position.y, mesh_data->triangles[t].vertices[v].position.z, 1.0f});
+            Vector4f view_space_vertex = mat4_multiply_vec4(view_matrix, world_space_vertex);
+            clip_space_vertices[v] = mat4_multiply_vec4(projection_matrix, view_space_vertex);
+            world_space_vertex_positions[v] = (Vector3f){world_space_vertex.x, world_space_vertex.y, world_space_vertex.z};
+            perspective_w_values[v] = clip_space_vertices[v].w;
+            uv_coordinates[v] = mesh_data->triangles[t].vertices[v].uv;
+        }
+
+        RGBVector3f vertex_colors[3] = {0};
+        switch (material_data->shading_model) {
+            case SHADING_FLAT:
+                Vector3f face_normal = mesh_data->face_normals[t];
+                Vector3f world_space_normal = {
+                    model_matrix.m[0][0] * face_normal.x + model_matrix.m[0][1] * face_normal.y + model_matrix.m[0][2] * face_normal.z,
+                    model_matrix.m[1][0] * face_normal.x + model_matrix.m[1][1] * face_normal.y + model_matrix.m[1][2] * face_normal.z,
+                    model_matrix.m[2][0] * face_normal.x + model_matrix.m[2][1] * face_normal.y + model_matrix.m[2][2] * face_normal.z
+                };
+
+                float length = sqrtf(world_space_normal.x * world_space_normal.x + world_space_normal.y * world_space_normal.y + world_space_normal.z * world_space_normal.z);
+                if (length > 0) {
+                    world_space_normal.x /= length;
+                    world_space_normal.y /= length;
+                    world_space_normal.z /= length;
+                }
+
+                float diffuse = fmaxf(0.0f, vec3f_dot_product(world_space_normal, vec3f_negate(light_direction)));
+                float brightness = directional_light.ambient_intensity + (1.0f - directional_light.ambient_intensity) * diffuse * directional_light.intensity;
+                brightness = fminf(1.0f, brightness);
+
+                RGBVector3f flat_shading_color = (RGBVector3f){
+                    material_data->diffuse_color.r * brightness * directional_light.color.r,
+                    material_data->diffuse_color.g * brightness * directional_light.color.g,
+                    material_data->diffuse_color.b * brightness * directional_light.color.b
+                };
+
+                vertex_colors[0] = flat_shading_color;
+                vertex_colors[1] = flat_shading_color;
+                vertex_colors[2] = flat_shading_color;
+                break;
+            case SHADING_PHONG:
+                for (int v = 0; v < 3; v++) {
+                    Vector3f vertex_normal = mesh_data->vertex_normals[mesh_data->triangles[t].vertex_normal_indices[v] - 1];
+                    Vector3f world_space_vertex_normal = {
+                        model_matrix.m[0][0] * vertex_normal.x + model_matrix.m[0][1] * vertex_normal.y + model_matrix.m[0][2] * vertex_normal.z,
+                        model_matrix.m[1][0] * vertex_normal.x + model_matrix.m[1][1] * vertex_normal.y + model_matrix.m[1][2] * vertex_normal.z,
+                        model_matrix.m[2][0] * vertex_normal.x + model_matrix.m[2][1] * vertex_normal.y + model_matrix.m[2][2] * vertex_normal.z
+                    };
+                    world_space_vertex_normals[v] = world_space_vertex_normal;
+
+                    vertex_colors[v] = material_data->diffuse_color;
+                }
+                break;
+            case SHADING_PBR:
+                // We'll do this later
+                break;
+        }
+
+        ClippingResult clipping_result = clip_triangle(clip_space_vertices, vertex_colors, world_space_vertex_normals, world_space_vertex_positions, uv_coordinates, perspective_w_values);
+
+        for (int c = 0; c < clipping_result.vertex_count - 2; c++) {
+            RenderTriangle resultant_render_triangle;
+            Vector2f ndc_coords_0 = convert_clip_space_to_normalized_device_coordinates(clipping_result.vertices[0]);
+            Vector2f ndc_coords_1 = convert_clip_space_to_normalized_device_coordinates(clipping_result.vertices[c + 1]);
+            Vector2f ndc_coords_2 = convert_clip_space_to_normalized_device_coordinates(clipping_result.vertices[c + 2]);
+            resultant_render_triangle.screen_positions[0] = convert_normalized_device_coordinates_to_screen_coordinates(ndc_coords_0, resolution.x, resolution.y);
+            resultant_render_triangle.screen_positions[1] = convert_normalized_device_coordinates_to_screen_coordinates(ndc_coords_1, resolution.x, resolution.y);
+            resultant_render_triangle.screen_positions[2] = convert_normalized_device_coordinates_to_screen_coordinates(ndc_coords_2, resolution.x, resolution.y);
+            resultant_render_triangle.depth_values[0] = clipping_result.vertices[0].z / clipping_result.vertices[0].w;
+            resultant_render_triangle.depth_values[1] = clipping_result.vertices[c + 1].z / clipping_result.vertices[c + 1].w;
+            resultant_render_triangle.depth_values[2] = clipping_result.vertices[c + 2].z / clipping_result.vertices[c + 2].w;
+            resultant_render_triangle.vertex_colors[0] = clipping_result.vertex_colors[0];
+            resultant_render_triangle.vertex_colors[1] = clipping_result.vertex_colors[c + 1];
+            resultant_render_triangle.vertex_colors[2] = clipping_result.vertex_colors[c + 2];
+            resultant_render_triangle.world_space_vertex_positions[0] = clipping_result.world_space_vertex_positions[0];
+            resultant_render_triangle.world_space_vertex_positions[1] = clipping_result.world_space_vertex_positions[c + 1];
+            resultant_render_triangle.world_space_vertex_positions[2] = clipping_result.world_space_vertex_positions[c + 2];
+            resultant_render_triangle.world_space_vertex_normals[0] = clipping_result.vertex_normals[0];
+            resultant_render_triangle.world_space_vertex_normals[1] = clipping_result.vertex_normals[c + 1];
+            resultant_render_triangle.world_space_vertex_normals[2] = clipping_result.vertex_normals[c + 2];
+            resultant_render_triangle.uv_coordinates[0] = clipping_result.uv_coordinates[0];
+            resultant_render_triangle.uv_coordinates[1] = clipping_result.uv_coordinates[c + 1];
+            resultant_render_triangle.uv_coordinates[2] = clipping_result.uv_coordinates[c + 2];
+            resultant_render_triangle.perspective_w_values[0] = clipping_result.perspective_w_values[0];
+            resultant_render_triangle.perspective_w_values[1] = clipping_result.perspective_w_values[c + 1];
+            resultant_render_triangle.perspective_w_values[2] = clipping_result.perspective_w_values[c + 2];
+            resultant_render_triangle.flat_shading_color = vertex_colors[0];
+            resultant_render_triangle.material = material_data;
+            if (*output_triangle_count >= output_capacity) {
+                output_capacity *= 2;
+                output_render_triangles = realloc(output_render_triangles, output_capacity * sizeof(RenderTriangle));
+                if (!output_render_triangles) {
+                    LOG_ERROR("Failed to reallocate memory for render triangles");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            output_render_triangles[*output_triangle_count] = resultant_render_triangle;
+            (*output_triangle_count)++;
+        }
+    }
+    return output_render_triangles;
+}
+
 void rendering_pipeline_worker(void *arg) {
     RenderingPipelineJob *job = (RenderingPipelineJob*)arg;
     int initial_triangle_capacity = 4096;
@@ -215,4 +328,70 @@ RenderList generate_render_list(Scene *scene, AppContext *app_context) {
         free(jobs[i]);
     }
     return render_list;
+}
+
+RenderList rendering_pipeline_single_threaded(Scene *scene, AppContext *app_context) {
+    RenderList resultant_render_list = {0};
+
+    int initial_triangle_capacity = 4096;
+    resultant_render_list.triangles = malloc(initial_triangle_capacity * sizeof(RenderTriangle));
+    if (!resultant_render_list.triangles) {
+        LOG_ERROR("Failed to allocate memory for render triangles");
+        exit(EXIT_FAILURE);
+    }
+
+    Vector3f light_direction = scene->directional_light.direction;
+
+    int culled_entity_count = 0;
+
+    uint64_t query_component_mask = (1ULL << TRANSFORM) | (1ULL << MESH);
+    MatchedArchetypes matched_archetypes = find_matching_archetypes(scene, query_component_mask);
+    if (matched_archetypes.archetype_count == 0) {
+        LOG_WARNING("No entities found with required components for rendering");
+        free(matched_archetypes.archetypes);
+        return resultant_render_list;
+    }
+    for (int a = 0; a < matched_archetypes.archetype_count; a++) {
+        TransformComponent *transform_components = get_archetype_column_pointer(matched_archetypes.archetypes[a], TRANSFORM);
+        MeshComponent *mesh_components = get_archetype_column_pointer(matched_archetypes.archetypes[a], MESH);
+        for (int e = 0; e < matched_archetypes.archetypes[a]->row_count; e++) {
+            TransformComponent *transform = &transform_components[e];
+            MeshComponent *mesh = &mesh_components[e];
+
+            Vector4f center_world = mat4_multiply_vec4(transform->model_matrix, (Vector4f){0, 0, 0, 1});
+            Vector4f center_view = mat4_multiply_vec4(scene->virtual_camera.view_matrix, center_world);
+            float radius = scene->asset_library.meshes[mesh->mesh_id].bounding_sphere_radius;
+            if (!is_sphere_in_frustum(center_view, radius, scene->virtual_camera.field_of_view, scene->virtual_camera.aspect_ratio, scene->virtual_camera.near_plane, scene->virtual_camera.far_plane)) {
+                culled_entity_count++;
+                continue; // Skip this entity since it's not within the camera's view frustum
+            }
+
+            Mesh3D *mesh_data = &scene->asset_library.meshes[mesh->mesh_id];
+            Material *material = &scene->asset_library.materials[mesh_data->material_id];
+
+            if (mesh->mesh_id < 0 || mesh_data->material_id < 0) continue;
+
+            int entity_triangle_count = 0;
+            RenderTriangle *render_triangles_for_entity = process_entity_mesh(mesh_data, material, app_context->window_resolution, transform->model_matrix, scene->virtual_camera.view_matrix, scene->virtual_camera.perspective_projection_matrix, light_direction, scene->directional_light, &entity_triangle_count);
+
+            // Append the render triangles for this entity to the overall render list
+            if (resultant_render_list.triangle_count + entity_triangle_count >= initial_triangle_capacity) {
+                int new_capacity = (resultant_render_list.triangle_count + entity_triangle_count) * 2;
+                RenderTriangle *resized_triangles = realloc(resultant_render_list.triangles, new_capacity * sizeof(RenderTriangle));
+                if (!resized_triangles) {
+                    LOG_ERROR("Failed to reallocate memory for render triangles");
+                    free(render_triangles_for_entity);
+                    exit(EXIT_FAILURE);
+                }
+                resultant_render_list.triangles = resized_triangles;
+                initial_triangle_capacity = new_capacity;
+            }
+            memcpy(&resultant_render_list.triangles[resultant_render_list.triangle_count], render_triangles_for_entity, entity_triangle_count * sizeof(RenderTriangle));
+            resultant_render_list.triangle_count += entity_triangle_count;
+
+            free(render_triangles_for_entity);
+        }
+    }
+    free(matched_archetypes.archetypes);
+    return resultant_render_list;
 }

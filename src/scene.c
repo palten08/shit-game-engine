@@ -182,6 +182,10 @@ Scene *load_scene_from_binary(const char *filename, Scene *scene) {
     LOG_DEBUG("Registering entities and their components");
     for (uint32_t i = 0; i < loaded_header.entity_count; i++) {
         Entity entity_id = register_entity(scene);
+        EntityNameToIDMap *name_to_id_entry = &scene->entity_name_to_id_map[scene->registered_entity_count - 1];
+        strncpy(name_to_id_entry->entity_name, loaded_entities[i].entity_name, sizeof(name_to_id_entry->entity_name) - 1);
+        name_to_id_entry->entity_name[sizeof(name_to_id_entry->entity_name) - 1] = '\0';
+        name_to_id_entry->entity_id = entity_id;
         LOG_DEBUG("Registered entity %d with ID %d", i, entity_id);
         for (uint32_t j = 0; j < loaded_entities[i].component_count; j++) {
             int component_id = -1;
@@ -195,7 +199,9 @@ Scene *load_scene_from_binary(const char *filename, Scene *scene) {
                 LOG_WARNING("Component '%s' for entity '%s' is not registered in the scene, skipping it", loaded_entities[i].components[j].component_name, loaded_entities[i].entity_name);
                 continue; // Component not registered, skip it
             }
-            scene->component_masks[entity_id] |= (1ULL << component_id); // Set the bit for this component in the entity's component mask
+            char zeroed_data[scene->component_array[component_id].size];
+            memset(zeroed_data, 0, scene->component_array[component_id].size);
+            add_component(scene, entity_id, component_id, zeroed_data); // Add the component to the entity with zeroed data first to ensure the archetype is set up correctly
             scene->component_array[component_id].parser(scene, entity_id, component_id, loaded_entities[i].components[j].data);
             LOG_DEBUG("Parsed component %d for entity %d", component_id, entity_id);
         }

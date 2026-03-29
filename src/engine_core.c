@@ -122,7 +122,8 @@ void engine_run(AppContext *app_context, Scene *loaded_scene) {
     app_context->systems_timer = SDL_GetPerformanceCounter();
     run_systems(loaded_scene, app_context);
     app_context->rendering_pipeline_timer = SDL_GetPerformanceCounter();
-    app_context->render_list = generate_render_list(loaded_scene, app_context);
+    //app_context->render_list = generate_render_list(loaded_scene, app_context);
+    app_context->render_list = rendering_pipeline_single_threaded(loaded_scene, app_context);
     app_context->rasterizer_timer = SDL_GetPerformanceCounter();
     render(app_context, &app_context->render_list, loaded_scene);
     app_context->update_end_timer = SDL_GetPerformanceCounter();

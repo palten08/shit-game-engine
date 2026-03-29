@@ -33,6 +33,11 @@ typedef struct {
     int next_id; // 4 bytes
 } EntityManager;
 
+typedef struct {
+    char entity_name[64]; // 64 bytes
+    int entity_id; // 4 bytes
+} EntityNameToIDMap;
+
 /**
  * @brief A structure representing a transform component that game projects can associate with an entity
  * 
@@ -136,5 +141,10 @@ typedef struct {
     int row_capacity; // 4 bytes
     int column_count; // 4 bytes
 } Archetype;
+
+typedef struct {
+    Archetype **archetypes; // 8 bytes
+    int archetype_count; // 4 bytes
+} MatchedArchetypes;
 
  /** @} */ // End of ECS group
