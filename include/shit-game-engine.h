@@ -22,3 +22,5 @@
 #include "quaternion_operations.h"
 #include "materials.h"
 #include "debug.h"
+#include "font.h"
+#include "ui.h"

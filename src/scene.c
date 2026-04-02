@@ -9,6 +9,8 @@
 #include "../include/obj_loader.h"
 #include "../include/logging.h"
 #include "../include/materials.h"
+#include "../include/font.h"
+#include "../include/stb_image.h"
 
 static char *read_packed_string(FILE *file_pointer) {
     uint32_t string_length = 0;
@@ -223,10 +225,24 @@ Scene *load_scene_from_binary(const char *filename, Scene *scene) {
 
     fclose(file_pointer);
 
+    // Hard coded font loading just for testing purposes
+    scene->bitmap_font = load_bitmap_font("assets/fonts/pete_0.png", "assets/fonts/pete.fnt");
+    LOG_DEBUG("Character 'M': atlas_pos=(%d,%d) atlas_size=(%d,%d) offset=(%d,%d) xadvance=%d",
+        scene->bitmap_font.characters[77].atlas_position.x, scene->bitmap_font.characters[77].atlas_position.y,
+        scene->bitmap_font.characters[77].atlas_size.x, scene->bitmap_font.characters[77].atlas_size.y,
+        scene->bitmap_font.characters[77].cursor_offset.x, scene->bitmap_font.characters[77].cursor_offset.y,
+        scene->bitmap_font.characters[77].xadvance);
+
+
     return scene;
 }
 
 void destroy_scene(Scene *scene) {
+    // Free bitmap font
+    if (scene->bitmap_font.pixel_data) {
+        stbi_image_free(scene->bitmap_font.pixel_data);
+    }
+
     // Free materials
     for (uint32_t i = 0; i < scene->asset_library.material_count; i++) {
         free(scene->asset_library.materials[i].diffuse_texture);

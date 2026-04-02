@@ -34,7 +34,7 @@ typedef struct AppContext {
     InputActionMap input_action_map; // 8960 bytes
     ThreadPool thread_pool; // 128 bytes
     GifRecordConfig gif_config; // 24 bytes
-    RenderList render_list; // 8 bytes
+    RenderList render_list; // 16 bytes
     RenderTriangle ***tile_triangles; // 8 bytes
     RasterizerJob *rasterizer_job_pool; // 8 bytes
     const char *log_path; // 8 bytes

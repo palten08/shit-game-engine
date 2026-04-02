@@ -4,13 +4,14 @@
 #include <float.h>
 
 #include "../include/engine_core.h"
-#include "scene.h"
-#include "app.h"
-#include "logging.h"
-#include "rendering_pipeline.h"
-#include "ecs.h"
-#include "input_actions.h"
-#include "utils.h"
+#include "../include/scene.h"
+#include "../include/app.h"
+#include "../include/logging.h"
+#include "../include/rendering_pipeline.h"
+#include "../include/ecs.h"
+#include "../include/input_actions.h"
+#include "../include/utils.h"
+#include "../include/ui.h"
 
 void engine_init(AppContext *app_context, EngineRunConfig *config) {
     printf("Engine initialization start");
@@ -125,7 +126,11 @@ void engine_run(AppContext *app_context, Scene *loaded_scene) {
     //app_context->render_list = generate_render_list(loaded_scene, app_context);
     app_context->render_list = rendering_pipeline_single_threaded(loaded_scene, app_context);
     app_context->rasterizer_timer = SDL_GetPerformanceCounter();
-    render(app_context, &app_context->render_list, loaded_scene);
+    clear_and_lock_frame(app_context);
+    render_frame(app_context, &app_context->render_list, loaded_scene);
+    //draw_debug(app_context, loaded_scene);
+    draw_ui(app_context, loaded_scene);
+    present_frame(app_context);
     app_context->update_end_timer = SDL_GetPerformanceCounter();
 }
 

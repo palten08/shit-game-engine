@@ -19,6 +19,7 @@
 typedef struct Scene {
     EntityNameToIDMap entity_name_to_id_map[MAX_ENTITIES]; // 69632 bytes
     EntityRecord entity_records[MAX_ENTITIES]; // 8192 bytes
+    BitmapFont bitmap_font; // 4104 bytes
     Archetype archetypes[MAX_ARCHETYPES]; // 1536 bytes
     ComponentArray component_array[MAX_COMPONENTS]; // 1440 bytes
     System systems[MAX_SYSTEMS]; // 512 bytes

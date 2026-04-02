@@ -1,3 +1,5 @@
+#pragma once
+
 #include <SDL3/SDL.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -11,7 +13,7 @@
 #include "types/lighting_types.h"
 #include "types/rotation_types.h"
 #include "types/material_types.h"
-
-#pragma once
+#include "types/ui_types.h"
+#include "types/font_types.h"
 
 // Double check alignment!
